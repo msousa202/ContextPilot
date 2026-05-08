@@ -1,0 +1,19 @@
+---
+description: ContextPilot plan alignment—docs, privacy, layering
+alwaysApply: true
+---
+
+# ContextPilot
+
+**Plan**: `Doc/contextpilot_functional_doc.docx`, `Doc/contextpilot_technical_doc.docx`, diagram `Doc/contextpilot_full_system_architecture.svg`.
+
+Open-source **Python 3.10+** middleware: `contextpilot.wrap(client)` → analyze payload (staleness, redundancy, relevance, density) → compress (history summarizer, system prompt dedup, RAG pruning, structural stripping, agent memory) → **quality gate** (default threshold **85**; fallback to uncompressed) → forward via provider adapters → **telemetry metadata only** (no prompts/responses/PII).
+
+## Non‑negotiables
+
+- Telemetry: numerical fields only (see technical doc schema); TLS to dashboard; failure → silent drop/retry, library keeps working.
+- Library must stay usable **without** dashboard connectivity.
+
+## Structure target
+
+Mirror the technical doc package tree: `wrapper`, `analyzer`, `compressor`, `strategies/*`, `quality`, `shadow`, `telemetry`, `config`, `adapters/*`, optional `_rust`.

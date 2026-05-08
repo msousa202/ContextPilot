@@ -1,0 +1,12 @@
+---
+description: Keeps refactors scoped and structure clean
+globs: "**/*.{ts,tsx,js,jsx,py,rs,go}"
+alwaysApply: false
+---
+
+# Structure and cleanliness
+
+- One primary responsibility per file; extract when a file mixes unrelated concerns.
+- Match existing naming and folder layout in the touched area.
+- Refactor in **minimal steps**; do not rename or reformat unrelated symbols.
+- Prefer explicit module boundaries over cross-layer imports “for convenience.”
