@@ -7,6 +7,8 @@ the wire exactly as a production call would — without spending any API credits
 from __future__ import annotations
 
 import pytest
+
+openai = pytest.importorskip("openai", reason="openai package not installed")
 from openai import OpenAI
 
 import contextpilot

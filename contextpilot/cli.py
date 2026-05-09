@@ -133,6 +133,55 @@ def migrate(path: str, dry_run: bool, apply_changes: bool, config_path: str | No
 
 
 # ---------------------------------------------------------------------------
+# Surface B companion: service management
+# ---------------------------------------------------------------------------
+
+@main.group()
+def service() -> None:
+    """Manage the ContextPilot proxy as a background startup service.
+
+    \b
+    Installs the proxy so it starts automatically on login — no terminal
+    required. Also sets ANTHROPIC_BASE_URL permanently so Claude Code,
+    GPT Codex, and Aider route through it automatically.
+
+    \b
+      contextpilot service install    # register + start now
+      contextpilot service uninstall  # stop + remove
+      contextpilot service status     # show running state
+    """
+
+
+@service.command("install")
+@click.option("--port", default=8432, show_default=True, help="TCP port for the proxy.")
+@click.option("--host", default="127.0.0.1", show_default=True, help="Address to bind.")
+def service_install(port: int, host: str) -> None:
+    """Register the proxy as a startup service and set ANTHROPIC_BASE_URL."""
+    from contextpilot.service import install
+    try:
+        install(port=port, host=host)
+    except RuntimeError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+
+@service.command("uninstall")
+def service_uninstall() -> None:
+    """Stop and remove the startup service, clear ANTHROPIC_BASE_URL."""
+    from contextpilot.service import uninstall
+    try:
+        uninstall()
+    except RuntimeError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+
+@service.command("status")
+def service_status() -> None:
+    """Show whether the proxy service is installed and running."""
+    from contextpilot.service import status
+    status()
+
+
+# ---------------------------------------------------------------------------
 # Report: local savings summary
 # ---------------------------------------------------------------------------
 
