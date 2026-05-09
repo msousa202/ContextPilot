@@ -267,10 +267,10 @@ python -m contextpilot mcp
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](https://github.com/msousa202/ContextPilot/blob/main/CONTRIBUTING.md).
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](https://github.com/msousa202/ContextPilot/blob/main/LICENSE).
