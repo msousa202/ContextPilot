@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import json
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 import httpx
 
 from contextpilot.config import ContextPilotConfig
+
+_LOCAL_DIR = Path.home() / ".contextpilot"
+_LOCAL_LOG = _LOCAL_DIR / "events.jsonl"
 
 
 @dataclass
@@ -71,9 +76,19 @@ class TelemetryCollector:
     def record(self, event: TelemetryEvent) -> None:
         if not self.config.telemetry.enabled:
             return
+        self._write_local(event)
         self._buffer.append(event)
         if len(self._buffer) >= self.config.telemetry.flush_size:
             self._flush()
+
+    @staticmethod
+    def _write_local(event: TelemetryEvent) -> None:
+        try:
+            _LOCAL_DIR.mkdir(parents=True, exist_ok=True)
+            with _LOCAL_LOG.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(event.to_dict()) + "\n")
+        except Exception:
+            pass  # silent drop — never affect library operation
 
     def _flush(self) -> None:
         if not self._buffer or not self.config.telemetry.api_key:
