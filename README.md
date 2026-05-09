@@ -180,15 +180,59 @@ Telemetry sends **numerical metadata only**: token counts, latency, quality scor
 
 ---
 
-## Installation options
+## Installation
+
+### Library (inside a project)
 
 ```bash
 pip install contextpilot-ai           # core library
-pip install contextpilot-ai[proxy]    # + proxy server (fastapi, uvicorn)
+pip install contextpilot-ai[proxy]    # + proxy server (starlette, uvicorn)
 pip install contextpilot-ai[openai]   # + openai SDK
 pip install contextpilot-ai[anthropic] # + anthropic SDK
 pip install contextpilot-ai[all]      # everything
 ```
+
+The `contextpilot.wrap()` and import work the same whether you install globally or inside a virtualenv.
+
+### CLI / proxy (globally available in every terminal)
+
+The proxy and MCP commands need to be reachable from any terminal without activating a virtualenv first. The cleanest way is **pipx**, which installs CLI tools into their own isolated environment and wires them into your PATH automatically:
+
+```bash
+pipx install "contextpilot-ai[proxy,mcp]"
+```
+
+`pipx` is available via `pip install pipx` or `brew install pipx`. After install, `contextpilot proxy` and `contextpilot mcp` work in every new terminal with no extra steps.
+
+**Without pipx (global pip):**
+
+```bash
+pip install "contextpilot-ai[proxy,mcp]"
+```
+
+This works if your Python's `Scripts` directory (Linux/Mac: `~/.local/bin`) is in your PATH. If not, you can always use the module form as a fallback:
+
+```bash
+python -m contextpilot proxy --port 8432
+python -m contextpilot mcp
+```
+
+**Inside a virtualenv:**
+
+```bash
+source .venv/bin/activate          # Linux / Mac
+.venv\Scripts\activate             # Windows
+pip install "contextpilot-ai[proxy,mcp]"
+contextpilot proxy --port 8432
+```
+
+The proxy must keep running while you use Claude Code, so it needs to run in an activated terminal or be started via `python -m contextpilot proxy` from within the venv.
+
+---
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for the full data handling policy, proxy trust model, and vulnerability reporting process.
 
 ---
 
