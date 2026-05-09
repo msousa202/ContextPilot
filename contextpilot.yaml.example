@@ -1,0 +1,16 @@
+compression:
+  level: balanced          # conservative | balanced | aggressive
+  quality_threshold: 85    # fallback to uncompressed if predicted score drops below this
+  history_window: 6        # keep last N conversation turns verbatim
+  rag_relevance_min: 0.15  # drop RAG chunks below this TF-IDF relevance score
+
+shadow_testing:
+  enabled: false
+  sample_rate: 0.05        # fraction of calls sent both compressed and uncompressed
+
+telemetry:
+  enabled: true
+  endpoint: https://api.contextpilot.dev/v1/telemetry
+  api_key: ${CONTEXTPILOT_API_KEY}
+  flush_interval: 60       # seconds between buffer flushes
+  flush_size: 100          # flush when buffer reaches this many events
