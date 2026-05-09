@@ -53,6 +53,9 @@ mcp = FastMCP(
         "token costs 30–70%% with automatic quality fallback."
     ),
     website_url="https://contextpilot.org",
+    # WARNING suppresses FastMCP init/handler messages from stdio output,
+    # which would corrupt the JSON-RPC stream Claude reads.
+    log_level="WARNING",
 )
 
 
