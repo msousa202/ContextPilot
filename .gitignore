@@ -51,6 +51,9 @@ contextpilot.yaml
 Thumbs.db
 desktop.ini
 
+# Claude Code session data
+.claude/
+
 # IDEs
 .vscode/
 .idea/

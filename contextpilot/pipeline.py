@@ -7,10 +7,7 @@ from contextpilot.compressor import Compressor
 from contextpilot.config import ContextPilotConfig
 from contextpilot.quality import QualityGate
 from contextpilot.telemetry import TelemetryCollector, TelemetryEvent
-
-
-def _word_count(messages: list[dict]) -> int:
-    return sum(len((m.get("content") or "").split()) for m in messages)
+from contextpilot._utils import word_count_messages
 
 
 class Pipeline:
@@ -46,8 +43,8 @@ class Pipeline:
 
         compression_ms = (time.perf_counter() - t0) * 1000
 
-        orig_tokens = _word_count(messages)
-        comp_tokens = _word_count(compressed_msgs)
+        orig_tokens = word_count_messages(messages)
+        comp_tokens = word_count_messages(compressed_msgs)
 
         # If compression increased token count, skip it — no benefit
         if comp_tokens >= orig_tokens:
@@ -77,8 +74,8 @@ class Pipeline:
         event = TelemetryEvent(
             provider=provider,
             model=model,
-            tokens_input_original=_word_count(messages),
-            tokens_input_compressed=_word_count(result_msgs),
+            tokens_input_original=word_count_messages(messages),
+            tokens_input_compressed=word_count_messages(result_msgs),
             latency_ms=round(latency_ms, 2),
             compression_ms=round(compression_ms, 2),
             quality_score=quality_score,

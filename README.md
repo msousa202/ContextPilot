@@ -3,7 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/contextpilot-ai)](https://pypi.org/project/contextpilot-ai/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-109%20passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-145%20passing-brightgreen.svg)](tests/)
 
 **Cut your LLM API costs 30–70% with one line of code.**
 
@@ -186,7 +186,7 @@ Telemetry sends **numerical metadata only**: token counts, latency, quality scor
 
 ```bash
 pip install contextpilot-ai           # core library
-pip install contextpilot-ai[proxy]    # + proxy server (starlette, uvicorn)
+pip install "contextpilot-ai[proxy]"  # + proxy server (starlette, uvicorn)
 pip install contextpilot-ai[openai]   # + openai SDK
 pip install contextpilot-ai[anthropic] # + anthropic SDK
 pip install contextpilot-ai[all]      # everything

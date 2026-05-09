@@ -1,16 +1,12 @@
 from __future__ import annotations
 
 import random
-from typing import Callable, Optional
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from contextpilot.config import ContextPilotConfig
-
-
-def _flatten(messages: list[dict]) -> str:
-    return " ".join(m.get("content") or "" for m in messages)
+from contextpilot._utils import flatten_messages
 
 
 def _response_text(response: object) -> str:

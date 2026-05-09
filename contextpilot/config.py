@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Optional
 
 import yaml
 from pydantic import BaseModel, Field
@@ -23,9 +22,8 @@ class ShadowTestingConfig(BaseModel):
 class TelemetryConfig(BaseModel):
     enabled: bool = True
     endpoint: str = "https://api.contextpilot.org/v1/telemetry"
-    api_key: Optional[str] = None
-    flush_interval: int = 60   # seconds
-    flush_size: int = 100      # events
+    api_key: str | None = None
+    flush_size: int = 100
 
 
 class ContextPilotConfig(BaseModel):

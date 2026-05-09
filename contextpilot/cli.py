@@ -10,11 +10,10 @@ contextpilot report   — Show local token savings summary
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import click
 
-_LOCAL_LOG = Path.home() / ".contextpilot" / "events.jsonl"
+from contextpilot.telemetry import _LOCAL_LOG
 
 # Rough $/1M-token rates for common models (input side).
 _PRICING: dict[str, float] = {
@@ -39,7 +38,7 @@ def _rate_for(model: str) -> float:
 
 
 @click.group()
-@click.version_option(package_name="contextpilot")
+@click.version_option(package_name="contextpilot-ai")
 def main() -> None:
     """ContextPilot — Intelligent LLM context optimization middleware."""
 

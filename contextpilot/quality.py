@@ -4,17 +4,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from contextpilot.config import ContextPilotConfig
-
-
-def _flatten(messages: list[dict], system: str | None = None) -> str:
-    parts = [m.get("content") or "" for m in messages]
-    if system:
-        parts.insert(0, system)
-    return " ".join(parts)
-
-
-def _word_count(messages: list[dict]) -> int:
-    return sum(len((m.get("content") or "").split()) for m in messages)
+from contextpilot._utils import flatten_messages, word_count_messages
 
 
 class QualityGate:
@@ -38,8 +28,8 @@ class QualityGate:
         system: str | None = None,
         compressed_system: str | None = None,
     ) -> float:
-        orig_text = _flatten(original, system)
-        comp_text = _flatten(compressed, compressed_system)
+        orig_text = flatten_messages(original, system)
+        comp_text = flatten_messages(compressed, compressed_system)
 
         if not orig_text.strip():
             return 100.0
