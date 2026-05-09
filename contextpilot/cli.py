@@ -3,6 +3,7 @@
 Commands
 --------
 contextpilot proxy    — Surface B: local proxy server (FR-009)
+contextpilot mcp      — Surface C: MCP server for Claude Desktop / Claude Code (FR-010)
 contextpilot migrate  — Surface D: AST-based migration agent (FR-011)
 contextpilot report   — Show local token savings summary
 """
@@ -65,6 +66,37 @@ def proxy(port: int, host: str, config_path: str | None) -> None:
     """
     from contextpilot.proxy import run_proxy
     run_proxy(host=host, port=port, config_path=config_path)
+
+
+# ---------------------------------------------------------------------------
+# Surface C: mcp
+# ---------------------------------------------------------------------------
+
+@main.command()
+def mcp() -> None:
+    """Start the MCP server for Claude Desktop and Claude Code (Surface C, FR-010).
+
+    \b
+    Runs in stdio mode — connect once, every LLM code Claude generates
+    will include contextpilot.wrap() automatically.
+
+    Claude Desktop — add to claude_desktop_config.json:
+    \b
+      {
+        "mcpServers": {
+          "contextpilot": {
+            "command": "contextpilot",
+            "args": ["mcp"]
+          }
+        }
+      }
+
+    Claude Code:
+    \b
+      claude mcp add contextpilot -- contextpilot mcp
+    """
+    from contextpilot.mcp_server import run_mcp
+    run_mcp()
 
 
 # ---------------------------------------------------------------------------
