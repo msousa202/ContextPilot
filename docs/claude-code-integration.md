@@ -40,7 +40,7 @@ After compression, a **quality gate** predicts the preservation score (0–100).
 
 ### Mode 1 — Proxy (transparent, automatic)
 
-Every message you or Claude Code sends is compressed before hitting Anthropic. You change nothing about your workflow — just start the proxy and set one environment variable.
+Every message you or Claude Code sends is compressed before hitting Anthropic. You change nothing about your workflow.
 
 ```
 Claude Code (VS Code or terminal)
@@ -53,6 +53,13 @@ Claude Code (VS Code or terminal)
 ```
 
 **Best for:** cutting your actual API bill. Every prompt — code generation, explanation, refactor — goes through compression without any extra steps.
+
+The proxy has two setup options:
+
+| Option | How | Persistent? |
+|--------|-----|-------------|
+| **Service** (recommended) | `contextpilot service install` | Yes — starts on every login automatically |
+| **Manual** | `contextpilot proxy --port 8432` | Session only — terminal must stay open |
 
 ---
 
@@ -68,50 +75,71 @@ Claude Code session
         └─ reads contextpilot://savings ──► returns your savings summary
 ```
 
-**Best for:** AI-native distribution — when Claude generates LLM code for you or others, it includes `contextpilot.wrap()` automatically because the `optimize_llm_code` tool is available. It also gives Claude awareness of when contexts are getting large.
+**Best for:** AI-native distribution — when Claude generates LLM code for you or others, it includes `contextpilot.wrap()` automatically because the `optimize_llm_code` tool is available.
 
 ---
 
 ## Setup — Claude Code in VS Code (extension)
 
-### Proxy setup (transparent compression)
+### Proxy — service install (recommended)
+
+Run once. The proxy starts automatically on every login from this point on.
+
+```powershell
+# Install with pipx so the CLI is always in PATH
+pipx install "contextpilot-ai[proxy]"
+
+# Register as a startup service + set ANTHROPIC_BASE_URL permanently
+contextpilot service install
+```
+
+Restart VS Code once to pick up the new `ANTHROPIC_BASE_URL` environment variable. After that, every Claude Code session in VS Code automatically routes through ContextPilot — no terminal to keep open, no command to remember.
+
+To confirm it's running:
+
+```powershell
+contextpilot service status
+```
+
+To remove it:
+
+```powershell
+contextpilot service uninstall
+```
+
+---
+
+### Proxy — manual (per session)
+
+Use this if you only want compression for a specific session, or if you prefer not to install a startup service.
 
 Open a terminal inside VS Code and run:
 
 ```powershell
-# Start the proxy (keep this terminal open)
 contextpilot proxy --port 8432
+# or, if contextpilot is not in PATH:
+python -m contextpilot proxy --port 8432
 ```
 
-Then in VS Code settings or your shell profile, set:
+Keep this terminal open. In any other terminal (or in VS Code settings), set:
 
 ```powershell
 $env:ANTHROPIC_BASE_URL = "http://localhost:8432"
 ```
 
-To make it permanent (survives restarts), add it to your PowerShell profile:
-
-```powershell
-# Open your profile
-notepad $PROFILE
-
-# Add this line at the bottom
-$env:ANTHROPIC_BASE_URL = "http://localhost:8432"
-```
-
-Every Claude Code request in VS Code now goes through compression. No other changes needed.
+Every Claude Code request in VS Code now goes through compression for as long as the proxy is running.
 
 ---
 
-### MCP server setup (tool-based)
+### MCP server setup
 
-Run once in your terminal:
+Run once in any terminal:
 
 ```powershell
 claude mcp add contextpilot -- contextpilot mcp
 ```
 
-Restart the VS Code extension (reload window or restart VS Code). ContextPilot now appears as a connected MCP server. Claude will:
+Reload the VS Code window (Ctrl+Shift+P → "Developer: Reload Window"). ContextPilot now appears as a connected MCP server. Claude will:
 
 - Call `optimize_context` when it processes large contexts
 - Include `contextpilot.wrap()` in LLM code it generates for you
@@ -126,15 +154,32 @@ You should see `optimize_context` and `optimize_llm_code` in the list.
 
 ## Setup — Claude Code on Console / CMD
 
-### Proxy setup
+### Proxy — service install (recommended)
+
+```powershell
+pipx install "contextpilot-ai[proxy]"
+contextpilot service install
+```
+
+Open a new terminal. `ANTHROPIC_BASE_URL` is now set permanently. Just run `claude` — every session is automatically compressed.
+
+---
+
+### Proxy — manual (per session)
 
 Open a first terminal and start the proxy:
 
-```cmd
+```powershell
 contextpilot proxy --port 8432
 ```
 
 Open a second terminal, set the env var, then use Claude Code normally:
+
+```powershell
+# PowerShell
+$env:ANTHROPIC_BASE_URL = "http://localhost:8432"
+claude
+```
 
 ```cmd
 :: Windows CMD
@@ -142,9 +187,9 @@ set ANTHROPIC_BASE_URL=http://localhost:8432
 claude
 ```
 
-```powershell
-:: PowerShell
-$env:ANTHROPIC_BASE_URL = "http://localhost:8432"
+```bash
+# Linux / macOS
+export ANTHROPIC_BASE_URL=http://localhost:8432
 claude
 ```
 
@@ -174,19 +219,18 @@ The tools are available immediately. You can ask Claude to call them explicitly:
 
 ## Use cases
 
-### 1. Daily Claude Code usage (proxy)
+### 1. Daily Claude Code usage (service — set and forget)
 
-You use Claude Code every day to write, refactor, and explain code. Long coding sessions build up context — previous file contents, error messages, explanations — that gets re-sent with every message.
-
-**Without ContextPilot:** each message carries the full accumulated history.
-**With ContextPilot proxy:** older turns are summarized, repeated content is deduplicated. Your prompts stay lean throughout the session.
+Install once. Every session for the rest of time is compressed automatically.
 
 ```powershell
-# Set once, benefit all day
-$env:ANTHROPIC_BASE_URL = "http://localhost:8432"
-contextpilot proxy --port 8432
-claude  # normal usage from here
+pipx install "contextpilot-ai[proxy]"
+contextpilot service install
+# restart VS Code once
+# done — nothing else to do, ever
 ```
+
+Long sessions naturally accumulate context — previous file contents, error messages, explanations — that gets re-sent with every message. With the service running, older turns are summarized and repeated content is deduplicated transparently on every request.
 
 ---
 
@@ -203,7 +247,6 @@ from anthropic import Anthropic
 
 client = contextpilot.wrap(Anthropic())
 
-# Your RAG pipeline — retrieved_chunks injected as messages
 response = client.messages.create(
     model="claude-sonnet-4-20250514",
     max_tokens=1024,
@@ -253,14 +296,14 @@ Uses AST parsing — it finds `OpenAI()` and `Anthropic()` instantiations and wr
 
 ### 5. Checking your savings
 
-After any usage (proxy, library, or MCP):
+After any usage (service, proxy, library, or MCP):
 
 ```powershell
 contextpilot report
 ```
 
 ```
-  ContextPilot - Savings Report
+  ContextPilot — Savings Report
   ------------------------------------
   Total calls logged   : 142
   Fallback rate        : 8/142 (5.6%)
@@ -313,3 +356,5 @@ cat ~/.contextpilot/events.jsonl
 ```
 
 Remote telemetry (to `api.contextpilot.org`) only fires if you explicitly set `CONTEXTPILOT_API_KEY`. Without it, all data stays local.
+
+For the full security model, see [SECURITY.md](../SECURITY.md).

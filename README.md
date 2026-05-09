@@ -7,7 +7,7 @@
 
 **Cut your LLM API costs 30–70% with one line of code.**
 
-ContextPilot is a Python middleware library that compresses LLM context before each API call — transparently, with automatic quality fallback. It wraps OpenAI, Anthropic, and Google SDKs and deploys across four surfaces: Python library, local proxy, MCP server, and CLI migration agent.
+ContextPilot is a Python middleware library that compresses LLM context before each API call — transparently, with automatic quality fallback. It wraps OpenAI and Anthropic SDKs and runs across four surfaces: Python library, local proxy, MCP server, and CLI migration agent.
 
 **Website:** [contextpilot.org](https://contextpilot.org) · **PyPI:** [contextpilot-ai](https://pypi.org/project/contextpilot-ai/)
 
@@ -15,31 +15,32 @@ ContextPilot is a Python middleware library that compresses LLM context before e
 
 ## How it works
 
-Every LLM API call passes through a compression pipeline:
+Every LLM API call passes through a four-stage pipeline:
 
 1. **Analyze** — scores each message block for staleness, redundancy, relevance, and density
 2. **Compress** — summarizes history, deduplicates system prompts, prunes irrelevant RAG chunks, strips structural noise
 3. **Quality gate** — if predicted quality drops below threshold (default 85/100), the original payload is sent instead
-4. **Forward** — the optimized (or original) payload goes to the provider, response comes back unchanged
+4. **Forward** — the optimized (or original) payload goes to the provider; response comes back unchanged
 
 Zero prompt content ever leaves your environment. Telemetry is numerical metadata only.
 
 ---
 
-## Integration Surfaces
+## Integration surfaces
 
-All surfaces share the same compression engine.
-
-| Surface | Command | Works with |
-|---------|---------|------------|
-| **Python library** | `pip install contextpilot-ai` | Any Python backend |
-| **Local proxy** | `contextpilot proxy --port 8432` | Claude Code, GPT Codex, Aider |
-| **MCP server** | `contextpilot mcp` | Claude Desktop, Claude Code |
+| Surface | Entry point | Best for |
+|---------|------------|----------|
+| **Python library** | `contextpilot.wrap(client)` | Backend apps, RAG pipelines, agents |
+| **Proxy — service** | `contextpilot service install` | Claude Code, GPT Codex, Aider — always on |
+| **Proxy — manual** | `contextpilot proxy --port 8432` | Temporary sessions or per-project use |
+| **MCP server** | `claude mcp add contextpilot -- contextpilot mcp` | Claude Desktop, Claude Code |
 | **CLI migration** | `contextpilot migrate ./src/` | Existing codebases with 50+ LLM calls |
 
 ---
 
 ## Quick Start
+
+### Python library
 
 ```bash
 pip install contextpilot-ai
@@ -76,34 +77,67 @@ That's the full integration. No other code changes required.
 
 ---
 
-## Local Proxy — for Claude Code, GPT Codex, Aider
+## Proxy — for Claude Code, GPT Codex, Aider
 
-Set one environment variable and every prompt from your AI coding tool is compressed automatically:
+The proxy intercepts every request from your AI coding tool and compresses it before it reaches the provider.
+
+### Recommended: install as a background service
+
+One command. Runs automatically on every login. No terminal to keep open.
 
 ```bash
-# Start the proxy
+pipx install "contextpilot-ai[proxy]"
+contextpilot service install
+```
+
+That's it. ContextPilot now:
+- Starts silently on login (Windows Task Scheduler / macOS launchd / Linux systemd)
+- Sets `ANTHROPIC_BASE_URL` permanently in your environment
+- Restarts itself automatically if it ever crashes
+- Compresses every Claude Code, GPT Codex, and Aider request with zero ongoing effort
+
+Restart VS Code (or open a new terminal) once to pick up the environment variable. From that point, every session is automatically compressed.
+
+```bash
+contextpilot service status     # confirm it's running
+contextpilot service uninstall  # remove if you ever want to stop
+```
+
+### Manual: start per session
+
+Useful for temporary use or when you only want compression for a specific project:
+
+```bash
+# Terminal 1 — keep this open
 contextpilot proxy --port 8432
 
-# Claude Code / Anthropic SDK
-export ANTHROPIC_BASE_URL=http://localhost:8432
+# Terminal 2 — set env var, then use Claude Code normally
+export ANTHROPIC_BASE_URL=http://localhost:8432      # Linux / macOS
+$env:ANTHROPIC_BASE_URL = "http://localhost:8432"    # Windows PowerShell
 
-# OpenAI SDK / GPT Codex
+# OpenAI SDK / GPT Codex / Aider
 export OPENAI_BASE_URL=http://localhost:8432/v1
 ```
 
-The coding assistant behaves identically — same responses, fewer tokens billed.
-
-Requires: `pip install contextpilot-ai[proxy]`
+`python -m contextpilot proxy --port 8432` works as a fallback if `contextpilot` is not in your PATH.
 
 ---
 
 ## MCP Server — for Claude Desktop and Claude Code
 
+Register once:
+
 ```bash
-contextpilot mcp
+claude mcp add contextpilot -- contextpilot mcp
 ```
 
-Exposes `optimize_context`, `get_savings`, and `suggest_config` to Claude. Claude automatically applies compression when context is large — no workflow changes required.
+Restart Claude Code (or reload the VS Code window). ContextPilot appears as a connected MCP server. Claude will:
+
+- Call `optimize_context` when processing large contexts
+- Include `contextpilot.wrap()` in any LLM code it generates for you
+- Report savings on request via the `contextpilot://savings` resource
+
+To verify: ask Claude Code *"What MCP tools do you have available?"* — you should see `optimize_context` and `optimize_llm_code`.
 
 ---
 
@@ -117,7 +151,7 @@ contextpilot migrate ./src/ --dry-run
 contextpilot migrate ./src/ --apply
 ```
 
-Uses AST parsing (not regex) to safely find and wrap every OpenAI and Anthropic client instantiation. Designed for codebases with 50+ LLM calls where manual refactoring is impractical.
+Uses AST parsing (not regex) to find every `OpenAI()` and `Anthropic()` instantiation and wrap it with `contextpilot.wrap()`. Designed for codebases with 50+ LLM calls where manual refactoring is impractical.
 
 ---
 
@@ -127,7 +161,19 @@ Uses AST parsing (not regex) to safely find and wrap every OpenAI and Anthropic 
 contextpilot report
 ```
 
-Reads the local event log (`~/.contextpilot/events.jsonl`) and shows token savings, compression ratio, quality scores, and estimated cost saved — no dashboard needed.
+Reads the local event log (`~/.contextpilot/events.jsonl`) and shows token savings, compression ratio, quality scores, and estimated cost saved — no dashboard required.
+
+```
+  ContextPilot — Savings Report
+  ------------------------------------
+  Total calls logged   : 142
+  Fallback rate        : 8/142 (5.6%)
+  Tokens in (original) : 284,391
+  Tokens in (sent)     : 178,203
+  Tokens saved         : 106,188  (37.3% reduction)
+  Avg quality score    : 91.4/100
+  Est. cost saved      : $0.5309
+```
 
 ---
 
@@ -178,6 +224,8 @@ Environment variable overrides: `CONTEXTPILOT_COMPRESSION_LEVEL`, `CONTEXTPILOT_
 
 Telemetry sends **numerical metadata only**: token counts, latency, quality scores, model IDs, timestamps. No prompt content, no response content, no PII ever leaves your environment. This is an architectural guarantee, not a policy.
 
+See [SECURITY.md](SECURITY.md) for the full data handling policy, proxy trust model, and vulnerability reporting process.
+
 ---
 
 ## Installation
@@ -185,54 +233,41 @@ Telemetry sends **numerical metadata only**: token counts, latency, quality scor
 ### Library (inside a project)
 
 ```bash
-pip install contextpilot-ai           # core library
-pip install "contextpilot-ai[proxy]"  # + proxy server (starlette, uvicorn)
-pip install contextpilot-ai[openai]   # + openai SDK
-pip install contextpilot-ai[anthropic] # + anthropic SDK
-pip install contextpilot-ai[all]      # everything
+pip install contextpilot-ai                    # core library
+pip install "contextpilot-ai[proxy]"           # + proxy server (starlette, uvicorn)
+pip install "contextpilot-ai[openai]"          # + openai SDK
+pip install "contextpilot-ai[anthropic]"       # + anthropic SDK
+pip install "contextpilot-ai[mcp]"             # + MCP server
+pip install "contextpilot-ai[all]"             # everything
 ```
 
-The `contextpilot.wrap()` and import work the same whether you install globally or inside a virtualenv.
+### CLI / proxy (recommended: pipx)
 
-### CLI / proxy (globally available in every terminal)
-
-The proxy and MCP commands need to be reachable from any terminal without activating a virtualenv first. The cleanest way is **pipx**, which installs CLI tools into their own isolated environment and wires them into your PATH automatically:
+[pipx](https://pipx.pypa.io) installs CLI tools in isolated environments and wires them into your PATH automatically — no virtualenv activation needed in new terminals:
 
 ```bash
 pipx install "contextpilot-ai[proxy,mcp]"
 ```
 
-`pipx` is available via `pip install pipx` or `brew install pipx`. After install, `contextpilot proxy` and `contextpilot mcp` work in every new terminal with no extra steps.
-
-**Without pipx (global pip):**
+**Without pipx:**
 
 ```bash
 pip install "contextpilot-ai[proxy,mcp]"
 ```
 
-This works if your Python's `Scripts` directory (Linux/Mac: `~/.local/bin`) is in your PATH. If not, you can always use the module form as a fallback:
+If `contextpilot` is not recognized after install, use the module form:
 
 ```bash
+python -m contextpilot service install
 python -m contextpilot proxy --port 8432
 python -m contextpilot mcp
 ```
 
-**Inside a virtualenv:**
-
-```bash
-source .venv/bin/activate          # Linux / Mac
-.venv\Scripts\activate             # Windows
-pip install "contextpilot-ai[proxy,mcp]"
-contextpilot proxy --port 8432
-```
-
-The proxy must keep running while you use Claude Code, so it needs to run in an activated terminal or be started via `python -m contextpilot proxy` from within the venv.
-
 ---
 
-## Security
+## Contributing
 
-See [SECURITY.md](SECURITY.md) for the full data handling policy, proxy trust model, and vulnerability reporting process.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
