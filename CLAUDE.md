@@ -110,10 +110,24 @@ Project-wide and glob-scoped guardrails under `.cursor/rules/` — follow unless
 
 ---
 
+## Change logging (`Logs/`)
+
+Every meaningful session of work gets a log file in `Logs/`:
+
+| Convention | Example |
+|------------|---------|
+| Phase work | `Logs/phase-1-foundation.md` |
+| Feature additions | `Logs/feat-proxy-server.md` |
+| Bug fixes / refactors | `Logs/fix-quality-gate.md` |
+
+Each log file must include: date, what changed (user-visible first), FR references where applicable, and the conventional commit lines. Use the **changelog-archivist** subagent or **log-code-changes** skill to produce entries.
+
+---
+
 ## Defaults for code work
 
 - Preserve public wrapper semantics (**FR-001**: transparent SDK behavior).
 - When adding a new surface (proxy / MCP / CLI), keep the core compression engine surface-agnostic — surfaces are thin shells over the shared pipeline.
-- Record notable API or compression-behavior changes when preparing commits/releases.
+- After any meaningful change, add or update a file in `Logs/` before closing the session.
 - When touching **telemetry**, re-read the technical doc schema (§7) and **never** add content payload fields.
 - Dashboard lives in `dashboard/` — keep it separate from the core library.
