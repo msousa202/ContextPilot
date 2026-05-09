@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "contextpilot"
+name = "contextpilot-ai"
 version = "0.1.0"
 description = "Python middleware that compresses and optimizes LLM context before each API call"
 readme = "README.md"

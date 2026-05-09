@@ -10,7 +10,7 @@ shadow_testing:
 
 telemetry:
   enabled: true
-  endpoint: https://api.contextpilot.dev/v1/telemetry
+  endpoint: https://api.contextpilot.org/v1/telemetry
   api_key: ${CONTEXTPILOT_API_KEY}
   flush_interval: 60       # seconds between buffer flushes
   flush_size: 100          # flush when buffer reaches this many events

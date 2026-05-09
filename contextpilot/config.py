@@ -22,7 +22,7 @@ class ShadowTestingConfig(BaseModel):
 
 class TelemetryConfig(BaseModel):
     enabled: bool = True
-    endpoint: str = "https://api.contextpilot.dev/v1/telemetry"
+    endpoint: str = "https://api.contextpilot.org/v1/telemetry"
     api_key: Optional[str] = None
     flush_interval: int = 60   # seconds
     flush_size: int = 100      # events
