@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 *.pyo
 *.pyd
+*.pycache
 
 # Distribution / packaging
 dist/
@@ -51,8 +52,17 @@ contextpilot.yaml
 Thumbs.db
 desktop.ini
 
-# Claude Code session data
+# Claude Code session data (local only)
 .claude/
+
+# Cursor IDE config (local only)
+.cursor/
+
+# Internal development docs (not part of the open-source package)
+Doc/
+Logs/
+CLAUDE.md
+AGENTS.md
 
 # IDEs
 .vscode/
