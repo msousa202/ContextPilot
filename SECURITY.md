@@ -95,7 +95,7 @@ No AI/ML frameworks, no data collection SDKs, no analytics libraries.
 
 If you discover a security issue — particularly anything that could cause prompt content to leak, credentials to be exposed, or the proxy to be exploited — please report it privately before disclosing publicly.
 
-**Email:** mariio.sousa202@gmail.com  
+**Email:** contact@contexpilot.org  
 **Subject line:** `[SECURITY] ContextPilot — <short description>`
 
 Please include:
