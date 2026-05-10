@@ -59,6 +59,7 @@ dev = [
     "hypothesis>=6.0",
     "ruff>=0.1",
     "mypy>=1.5",
+    "types-PyYAML>=6.0",
     "openai>=1.0",
     "anthropic>=0.20",
     "starlette>=0.27",
@@ -83,6 +84,10 @@ select = ["E", "F", "I"]
 [tool.mypy]
 python_version = "3.10"
 strict = false
+
+[[tool.mypy.overrides]]
+module = ["sklearn.*", "winreg"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
