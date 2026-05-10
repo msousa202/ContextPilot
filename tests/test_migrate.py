@@ -1,4 +1,5 @@
 """Tests for FR-011: CLI migration agent (contextpilot/migrate.py)."""
+
 from __future__ import annotations
 
 import ast
@@ -16,6 +17,7 @@ from contextpilot.migrate import (
 # ---------------------------------------------------------------------------
 # AST helper unit tests
 # ---------------------------------------------------------------------------
+
 
 class TestIsLlmCall:
     def _call(self, src: str) -> ast.Call:
@@ -88,6 +90,7 @@ class TestLastImportLine:
 # Source transformation tests
 # ---------------------------------------------------------------------------
 
+
 class TestTransformSource:
     def _result(self, src: str):
         return _transform_source(textwrap.dedent(src), Path("test.py"))
@@ -119,7 +122,9 @@ class TestTransformSource:
             """
         r = self._result(src)
         lines = r.rewritten.splitlines()
-        import_line_idx = next(i for i, ln in enumerate(lines) if ln.strip() == "import contextpilot")
+        import_line_idx = next(
+            i for i, ln in enumerate(lines) if ln.strip() == "import contextpilot"
+        )
         # Should appear after 'from openai import OpenAI' (line index 1)
         assert import_line_idx >= 1
 
@@ -194,6 +199,7 @@ class TestTransformSource:
 # ---------------------------------------------------------------------------
 # MigrationAgent integration tests
 # ---------------------------------------------------------------------------
+
 
 class TestMigrationAgent:
     def test_dry_run_does_not_write(self, tmp_path: Path):

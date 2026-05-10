@@ -8,9 +8,9 @@ from pydantic import BaseModel, Field
 
 
 class CompressionConfig(BaseModel):
-    level: str = "balanced"          # conservative | balanced | aggressive
+    level: str = "balanced"  # conservative | balanced | aggressive
     quality_threshold: float = 72.0  # fallback below this score (TF-IDF weighted recall metric)
-    history_window: int = 6          # keep last N turns verbatim
+    history_window: int = 6  # keep last N turns verbatim
     rag_relevance_min: float = 0.15  # drop RAG chunks below this TF-IDF score
 
 

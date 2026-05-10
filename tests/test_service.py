@@ -1,4 +1,5 @@
 """Tests for contextpilot/service.py — background service management."""
+
 from __future__ import annotations
 
 import platform
@@ -14,6 +15,7 @@ _SYSTEM = platform.system()
 # ---------------------------------------------------------------------------
 # XML / plist / unit generation (pure, no subprocess)
 # ---------------------------------------------------------------------------
+
 
 class TestWindowsTaskXml:
     @pytest.mark.skipif(_SYSTEM != "Windows", reason="Windows only")
@@ -75,6 +77,7 @@ class TestLinuxUnit:
 # Shell profile env var management (Unix)
 # ---------------------------------------------------------------------------
 
+
 class TestShellEnvManagement:
     @pytest.mark.skipif(_SYSTEM == "Windows", reason="Unix only")
     def test_set_env_writes_export_line(self, tmp_path):
@@ -91,9 +94,7 @@ class TestShellEnvManagement:
     @pytest.mark.skipif(_SYSTEM == "Windows", reason="Unix only")
     def test_set_env_replaces_existing_entry(self, tmp_path):
         profile = tmp_path / ".bashrc"
-        profile.write_text(
-            f'export ANTHROPIC_BASE_URL="http://localhost:9000"  {svc._MARKER}\n'
-        )
+        profile.write_text(f'export ANTHROPIC_BASE_URL="http://localhost:9000"  {svc._MARKER}\n')
 
         with patch.object(svc, "_shell_profiles", return_value=[profile]):
             svc._shell_set_env("ANTHROPIC_BASE_URL", "http://localhost:8432")
@@ -134,6 +135,7 @@ class TestShellEnvManagement:
 # _run helper
 # ---------------------------------------------------------------------------
 
+
 class TestRunHelper:
     def test_raises_on_nonzero_exit(self):
         with pytest.raises(RuntimeError, match="Command failed"):
@@ -147,11 +149,14 @@ class TestRunHelper:
 # Windows env deletion (unit)
 # ---------------------------------------------------------------------------
 
+
 class TestWindowsDeleteEnv:
     @pytest.mark.skipif(_SYSTEM != "Windows", reason="Windows only")
     def test_delete_missing_key_does_not_raise(self):
-        with patch("winreg.OpenKey") as mock_open, \
-             patch("winreg.DeleteValue", side_effect=FileNotFoundError):
+        with (
+            patch("winreg.OpenKey") as mock_open,
+            patch("winreg.DeleteValue", side_effect=FileNotFoundError),
+        ):
             mock_open.return_value.__enter__ = lambda s: s
             mock_open.return_value.__exit__ = MagicMock(return_value=False)
             # should not raise
@@ -162,11 +167,13 @@ class TestWindowsDeleteEnv:
 # CLI integration
 # ---------------------------------------------------------------------------
 
+
 class TestServiceCli:
     def test_service_group_exists(self):
         from click.testing import CliRunner
 
         from contextpilot.cli import main
+
         runner = CliRunner()
         result = runner.invoke(main, ["service", "--help"])
         assert result.exit_code == 0
@@ -178,6 +185,7 @@ class TestServiceCli:
         from click.testing import CliRunner
 
         from contextpilot.cli import main
+
         runner = CliRunner()
         result = runner.invoke(main, ["service", "install", "--help"])
         assert result.exit_code == 0
@@ -188,6 +196,7 @@ class TestServiceCli:
         from click.testing import CliRunner
 
         from contextpilot.cli import main
+
         runner = CliRunner()
         with patch("contextpilot.service.install", side_effect=RuntimeError("boom")):
             result = runner.invoke(main, ["service", "install"])
@@ -198,6 +207,7 @@ class TestServiceCli:
         from click.testing import CliRunner
 
         from contextpilot.cli import main
+
         runner = CliRunner()
         with patch("contextpilot.service.uninstall", side_effect=RuntimeError("gone")):
             result = runner.invoke(main, ["service", "uninstall"])

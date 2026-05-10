@@ -29,10 +29,12 @@ def wrap(client: Any, config: ContextPilotConfig | dict | None = None) -> Any:
 
     if "openai" in module.lower() or name in ("OpenAI", "AsyncOpenAI"):
         from contextpilot.adapters.openai_adapter import OpenAIWrapper
+
         return OpenAIWrapper(client, pipeline)
 
     if "anthropic" in module.lower() or name in ("Anthropic", "AsyncAnthropic"):
         from contextpilot.adapters.anthropic_adapter import AnthropicWrapper
+
         return AnthropicWrapper(client, pipeline)
 
     raise ValueError(

@@ -1,4 +1,5 @@
 """Tests for FR-010: MCP server (contextpilot/mcp_server.py)."""
+
 from __future__ import annotations
 
 import json
@@ -14,6 +15,7 @@ from contextpilot.mcp_server import (
 # ---------------------------------------------------------------------------
 # optimize_context tool
 # ---------------------------------------------------------------------------
+
 
 class TestOptimizeContext:
     def test_returns_messages(self):
@@ -83,6 +85,7 @@ class TestOptimizeContext:
 # optimize_llm_code tool
 # ---------------------------------------------------------------------------
 
+
 class TestOptimizeLlmCode:
     def test_openai_default(self):
         code = optimize_llm_code()
@@ -107,6 +110,7 @@ class TestOptimizeLlmCode:
 
     def test_code_is_valid_python(self):
         import ast
+
         for provider in ("openai", "anthropic"):
             code = optimize_llm_code(provider)
             # Should parse without SyntaxError (variables like `messages` are undefined but that's ok)
@@ -116,6 +120,7 @@ class TestOptimizeLlmCode:
 # ---------------------------------------------------------------------------
 # get_savings resource
 # ---------------------------------------------------------------------------
+
 
 class TestGetSavings:
     def test_no_log_returns_message(self, tmp_path):
@@ -127,10 +132,18 @@ class TestGetSavings:
     def test_returns_summary_with_events(self, tmp_path):
         log = tmp_path / "events.jsonl"
         events = [
-            {"tokens_input_original": 100, "tokens_input_compressed": 60,
-             "quality_score": 92.0, "fallback_triggered": False},
-            {"tokens_input_original": 200, "tokens_input_compressed": 140,
-             "quality_score": 88.0, "fallback_triggered": True},
+            {
+                "tokens_input_original": 100,
+                "tokens_input_compressed": 60,
+                "quality_score": 92.0,
+                "fallback_triggered": False,
+            },
+            {
+                "tokens_input_original": 200,
+                "tokens_input_compressed": 140,
+                "quality_score": 88.0,
+                "fallback_triggered": True,
+            },
         ]
         with log.open("w") as f:
             for e in events:
@@ -140,7 +153,7 @@ class TestGetSavings:
             result = get_savings()
 
         assert "100" in result  # tokens saved (300 - 200)
-        assert "2" in result    # total calls
+        assert "2" in result  # total calls
 
     def test_empty_log_returns_message(self, tmp_path):
         log = tmp_path / "events.jsonl"
@@ -154,6 +167,7 @@ class TestGetSavings:
 # suggest_config resource
 # ---------------------------------------------------------------------------
 
+
 class TestSuggestConfig:
     def test_no_log_returns_recommendation(self, tmp_path):
         fake_log = tmp_path / "events.jsonl"
@@ -165,10 +179,7 @@ class TestSuggestConfig:
 
     def test_high_quality_suggests_aggressive(self, tmp_path):
         log = tmp_path / "events.jsonl"
-        events = [
-            {"quality_score": 97.0, "fallback_triggered": False}
-            for _ in range(20)
-        ]
+        events = [{"quality_score": 97.0, "fallback_triggered": False} for _ in range(20)]
         with log.open("w") as f:
             for e in events:
                 f.write(json.dumps(e) + "\n")
@@ -179,10 +190,7 @@ class TestSuggestConfig:
 
     def test_high_fallback_suggests_conservative(self, tmp_path):
         log = tmp_path / "events.jsonl"
-        events = [
-            {"quality_score": 70.0, "fallback_triggered": True}
-            for _ in range(20)
-        ]
+        events = [{"quality_score": 70.0, "fallback_triggered": True} for _ in range(20)]
         with log.open("w") as f:
             for e in events:
                 f.write(json.dumps(e) + "\n")
@@ -193,10 +201,7 @@ class TestSuggestConfig:
 
     def test_moderate_suggests_balanced(self, tmp_path):
         log = tmp_path / "events.jsonl"
-        events = [
-            {"quality_score": 88.0, "fallback_triggered": False}
-            for _ in range(10)
-        ]
+        events = [{"quality_score": 88.0, "fallback_triggered": False} for _ in range(10)]
         with log.open("w") as f:
             for e in events:
                 f.write(json.dumps(e) + "\n")
@@ -217,15 +222,18 @@ class TestSuggestConfig:
 # MCP server object
 # ---------------------------------------------------------------------------
 
+
 class TestMcpServerObject:
     def test_server_name(self):
         from contextpilot.mcp_server import mcp
+
         assert mcp.name == "ContextPilot"
 
     def test_tools_registered(self):
         import asyncio
 
         from contextpilot.mcp_server import mcp
+
         tools = asyncio.run(mcp.list_tools())
         names = {t.name for t in tools}
         assert "optimize_context" in names
@@ -235,6 +243,7 @@ class TestMcpServerObject:
         import asyncio
 
         from contextpilot.mcp_server import mcp
+
         resources = asyncio.run(mcp.list_resources())
         uris = {str(r.uri) for r in resources}
         assert "contextpilot://savings" in uris

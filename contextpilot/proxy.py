@@ -13,6 +13,7 @@ Claude Code:
 OpenAI SDK / GPT Codex:
     export OPENAI_BASE_URL=http://localhost:8432/v1
 """
+
 from __future__ import annotations
 
 import json
@@ -32,6 +33,7 @@ try:
     from starlette.requests import Request
     from starlette.responses import Response, StreamingResponse
     from starlette.routing import Route
+
     _STARLETTE_AVAILABLE = True
 except ImportError:
     _STARLETTE_AVAILABLE = False
@@ -39,11 +41,20 @@ except ImportError:
 OPENAI_BASE = "https://api.openai.com"
 ANTHROPIC_BASE = "https://api.anthropic.com"
 
-_HOP_HEADERS = frozenset({
-    "host", "content-length", "transfer-encoding", "connection",
-    "keep-alive", "proxy-authenticate", "proxy-authorization",
-    "te", "trailers", "upgrade",
-})
+_HOP_HEADERS = frozenset(
+    {
+        "host",
+        "content-length",
+        "transfer-encoding",
+        "connection",
+        "keep-alive",
+        "proxy-authenticate",
+        "proxy-authorization",
+        "te",
+        "trailers",
+        "upgrade",
+    }
+)
 
 
 def _forward_headers(request: "Request") -> dict[str, str]:
@@ -114,8 +125,10 @@ def _make_app(pipeline: Pipeline) -> "Starlette":  # type: ignore[return]
             system_str = _system_as_str(system_raw)
 
             optimized_msgs, optimized_sys, _ = pipeline.optimize(
-                messages, system=system_str,
-                provider="anthropic", model=body.get("model", "unknown"),
+                messages,
+                system=system_str,
+                provider="anthropic",
+                model=body.get("model", "unknown"),
             )
             body["messages"] = optimized_msgs
             # Only rewrite system if it was a plain string — leave content-block lists alone
@@ -163,6 +176,7 @@ def _make_app(pipeline: Pipeline) -> "Starlette":  # type: ignore[return]
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
+
 
 def _get_stream_flag(raw: bytes, forward_json: dict | None) -> bool:
     if forward_json is not None:

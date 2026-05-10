@@ -31,10 +31,7 @@ def test_long_conversation_is_compressed():
         "The analysis includes technical context, domain knowledge, examples from practice, "
         "and conclusions that build on previous turns in the conversation. "
     ) * 2  # ~100 words each — long enough that 80-char summary saves tokens
-    messages = [
-        {"role": "user", "content": f"Question {i}: {long_turn}"}
-        for i in range(10)
-    ] + [
+    messages = [{"role": "user", "content": f"Question {i}: {long_turn}"} for i in range(10)] + [
         {"role": "assistant", "content": f"Answer: {long_turn}"}
     ]
     result, system, event = pipeline.optimize(messages)

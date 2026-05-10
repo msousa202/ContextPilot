@@ -7,6 +7,7 @@ contextpilot mcp      — Surface C: MCP server for Claude Desktop / Claude Code
 contextpilot migrate  — Surface D: AST-based migration agent (FR-011)
 contextpilot report   — Show local token savings summary
 """
+
 from __future__ import annotations
 
 import json
@@ -39,6 +40,7 @@ def _rate_for(model: str) -> float:
 
 def _bar(ratio: float, width: int = 28) -> str:
     import sys
+
     encoding = getattr(sys.stdout, "encoding", "").lower().replace("-", "")
     use_unicode = encoding in ("utf8", "utf16", "utf32")
     filled = round(max(0.0, min(1.0, ratio)) * width)
@@ -57,6 +59,7 @@ def main() -> None:
 # Surface B: proxy
 # ---------------------------------------------------------------------------
 
+
 @main.command()
 @click.option("--port", default=8432, show_default=True, help="TCP port to listen on.")
 @click.option("--host", default="127.0.0.1", show_default=True, help="Address to bind.")
@@ -74,12 +77,14 @@ def proxy(port: int, host: str, config_path: str | None) -> None:
         export OPENAI_BASE_URL=http://localhost:8432/v1
     """
     from contextpilot.proxy import run_proxy
+
     run_proxy(host=host, port=port, config_path=config_path)
 
 
 # ---------------------------------------------------------------------------
 # Surface C: mcp
 # ---------------------------------------------------------------------------
+
 
 @main.command()
 def mcp() -> None:
@@ -105,12 +110,14 @@ def mcp() -> None:
       claude mcp add contextpilot -- contextpilot mcp
     """
     from contextpilot.mcp_server import run_mcp
+
     run_mcp()
 
 
 # ---------------------------------------------------------------------------
 # Surface D: migrate
 # ---------------------------------------------------------------------------
+
 
 @main.command()
 @click.argument("path", default=".", metavar="PATH")
@@ -147,6 +154,7 @@ def migrate(path: str, dry_run: bool, apply_changes: bool, config_path: str | No
 # Surface B companion: service management
 # ---------------------------------------------------------------------------
 
+
 @main.group()
 def service() -> None:
     """Manage the ContextPilot proxy as a background startup service.
@@ -169,6 +177,7 @@ def service() -> None:
 def service_install(port: int, host: str) -> None:
     """Register the proxy as a startup service and set ANTHROPIC_BASE_URL."""
     from contextpilot.service import install
+
     try:
         install(port=port, host=host)
     except RuntimeError as exc:
@@ -179,6 +188,7 @@ def service_install(port: int, host: str) -> None:
 def service_uninstall() -> None:
     """Stop and remove the startup service, clear ANTHROPIC_BASE_URL."""
     from contextpilot.service import uninstall
+
     try:
         uninstall()
     except RuntimeError as exc:
@@ -189,12 +199,14 @@ def service_uninstall() -> None:
 def service_status() -> None:
     """Show whether the proxy service is installed and running."""
     from contextpilot.service import status
+
     status()
 
 
 # ---------------------------------------------------------------------------
 # Report: local savings summary
 # ---------------------------------------------------------------------------
+
 
 @main.command()
 @click.option("--tail", default=0, help="Show only the last N events (0 = all).")

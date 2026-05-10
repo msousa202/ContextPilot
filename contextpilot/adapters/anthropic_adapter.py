@@ -15,7 +15,7 @@ class _MessagesWrapper:
         )
         if optimized_sys is not None:
             kwargs["system"] = optimized_sys
-        return self._messages_api.create(model=model, messages=optimized_msgs, **kwargs)  # type: ignore[union-attr]
+        return self._messages_api.create(model=model, messages=optimized_msgs, **kwargs)  # type: ignore[attr-defined]
 
     def __getattr__(self, name: str) -> object:
         return getattr(self._messages_api, name)
@@ -32,7 +32,7 @@ class AnthropicWrapper:
     def __init__(self, client: object, pipeline: Pipeline) -> None:
         self._client = client
         self._pipeline = pipeline
-        self.messages = _MessagesWrapper(client.messages, pipeline)  # type: ignore[union-attr]
+        self.messages = _MessagesWrapper(client.messages, pipeline)  # type: ignore[attr-defined]
 
     def __getattr__(self, name: str) -> object:
         return getattr(self._client, name)

@@ -29,6 +29,7 @@ Claude Desktop — add to claude_desktop_config.json:
 Claude Code:
     claude mcp add contextpilot -- contextpilot mcp
 """
+
 from __future__ import annotations
 
 import json
@@ -90,6 +91,7 @@ mcp = FastMCP(
 # ---------------------------------------------------------------------------
 # Tools
 # ---------------------------------------------------------------------------
+
 
 @mcp.tool()
 def optimize_context(
@@ -197,6 +199,7 @@ def optimize_llm_code(provider: str = "openai") -> str:
 # ---------------------------------------------------------------------------
 # Resources
 # ---------------------------------------------------------------------------
+
 
 @mcp.resource("contextpilot://savings")
 def get_savings() -> str:
@@ -310,20 +313,20 @@ def suggest_config() -> str:
         verdict = "UPGRADE TO AGGRESSIVE"
         reason = (
             f"Quality is excellent ({avg_q:.1f}/100) and fallbacks are rare "
-            f"({fallback_rate*100:.1f}%). Aggressive mode will save more tokens."
+            f"({fallback_rate * 100:.1f}%). Aggressive mode will save more tokens."
         )
     elif fallback_rate > 0.20:
         level = "conservative"
         verdict = "DOWNGRADE TO CONSERVATIVE"
         reason = (
-            f"Fallback rate is high ({fallback_rate*100:.1f}%). Conservative mode "
+            f"Fallback rate is high ({fallback_rate * 100:.1f}%). Conservative mode "
             f"will preserve more content and reduce fallbacks."
         )
     else:
         level = "balanced"
         verdict = "KEEP BALANCED MODE"
         reason = (
-            f"Quality ({avg_q:.1f}/100) and fallback rate ({fallback_rate*100:.1f}%) "
+            f"Quality ({avg_q:.1f}/100) and fallback rate ({fallback_rate * 100:.1f}%) "
             f"are within healthy ranges. Balanced mode is well-suited to your workload."
         )
 
@@ -336,8 +339,8 @@ def suggest_config() -> str:
         "",
         f"  Observed usage  ({total:,} calls)",
         f"    Avg quality score  :  {avg_q:.1f} / 100",
-        f"    Fallback rate      :  {fallback_rate*100:.1f}%"
-        f"  ({round(fallback_rate*total)}/{total})",
+        f"    Fallback rate      :  {fallback_rate * 100:.1f}%"
+        f"  ({round(fallback_rate * total)}/{total})",
         "",
         "  Suggested contextpilot.yaml:",
         "    compression:",
@@ -351,7 +354,9 @@ def suggest_config() -> str:
 # Entry point
 # ---------------------------------------------------------------------------
 
+
 def run_mcp() -> None:
     """Start the MCP server in stdio mode (Claude Desktop / Claude Code)."""
     import asyncio
+
     asyncio.run(mcp.run_stdio_async())

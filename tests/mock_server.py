@@ -3,6 +3,7 @@
 Runs in a background thread. Records every request so tests can inspect
 exactly what the wrapper sent (compressed or original).
 """
+
 from __future__ import annotations
 
 import json

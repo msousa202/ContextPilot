@@ -10,13 +10,13 @@ class _CompletionsWrapper:
 
     def create(self, *, model: str, messages: list[dict], **kwargs: object) -> object:
         optimized, _, _ = self._pipeline.optimize(messages, provider="openai", model=model)
-        return self._completions.create(model=model, messages=optimized, **kwargs)  # type: ignore[union-attr]
+        return self._completions.create(model=model, messages=optimized, **kwargs)  # type: ignore[attr-defined]
 
 
 class _ChatWrapper:
     def __init__(self, chat: object, pipeline: Pipeline) -> None:
         self._chat = chat
-        self.completions = _CompletionsWrapper(chat.completions, pipeline)  # type: ignore[union-attr]
+        self.completions = _CompletionsWrapper(chat.completions, pipeline)  # type: ignore[attr-defined]
 
     def __getattr__(self, name: str) -> object:
         return getattr(self._chat, name)
@@ -33,7 +33,7 @@ class OpenAIWrapper:
     def __init__(self, client: object, pipeline: Pipeline) -> None:
         self._client = client
         self._pipeline = pipeline
-        self.chat = _ChatWrapper(client.chat, pipeline)  # type: ignore[union-attr]
+        self.chat = _ChatWrapper(client.chat, pipeline)  # type: ignore[attr-defined]
 
     def __getattr__(self, name: str) -> object:
         return getattr(self._client, name)

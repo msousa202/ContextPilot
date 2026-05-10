@@ -1,4 +1,5 @@
 """FR-001: SDK wrapper integration tests using mocked clients."""
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -32,6 +33,7 @@ def make_anthropic_client() -> MagicMock:
 
 
 # --- wrap() detection ---
+
 
 def test_wrap_detects_openai():
     client = make_openai_client()
@@ -68,6 +70,7 @@ def test_wrap_accepts_config_object():
 
 # --- OpenAI wrapper ---
 
+
 def test_openai_wrapper_calls_original_create():
     client = make_openai_client()
     wrapped = contextpilot.wrap(client, config={"telemetry": {"enabled": False}})
@@ -102,7 +105,9 @@ def test_openai_wrapper_compresses_long_history():
 def test_openai_wrapper_preserves_model_arg():
     client = make_openai_client()
     wrapped = contextpilot.wrap(client, config={"telemetry": {"enabled": False}})
-    wrapped.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": "hi"}])
+    wrapped.chat.completions.create(
+        model="gpt-4o-mini", messages=[{"role": "user", "content": "hi"}]
+    )
     assert client.chat.completions.create.call_args.kwargs["model"] == "gpt-4o-mini"
 
 
@@ -129,11 +134,14 @@ def test_openai_wrapper_delegates_other_attrs():
 
 # --- Anthropic wrapper ---
 
+
 def test_anthropic_wrapper_calls_original_create():
     client = make_anthropic_client()
     wrapped = contextpilot.wrap(client, config={"telemetry": {"enabled": False}})
     messages = [{"role": "user", "content": "Hello"}]
-    response = wrapped.messages.create(model="claude-3-5-sonnet-20241022", messages=messages, max_tokens=1024)
+    response = wrapped.messages.create(
+        model="claude-3-5-sonnet-20241022", messages=messages, max_tokens=1024
+    )
     assert client.messages.create.called
     assert response.content[0].text == "Hi there!"
 

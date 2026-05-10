@@ -1,4 +1,5 @@
 """FR-008: Agent memory middleware tests."""
+
 from contextpilot.middleware import AgentMemory
 
 
@@ -37,6 +38,7 @@ def test_scaffolding_stripped():
 
 def test_accepts_config_object():
     from contextpilot.config import ContextPilotConfig
+
     cfg = ContextPilotConfig.model_validate({"compression": {"level": "aggressive"}})
     memory = AgentMemory(config=cfg)
     result = memory.compress_handoff("Thought: test\nFinal Answer: yes.")

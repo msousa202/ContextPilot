@@ -20,6 +20,7 @@ Claude Code, GPT Codex, and Aider automatically route through the proxy
 without any manual configuration in new terminals or after reboots.
 `uninstall` removes it.
 """
+
 from __future__ import annotations
 
 import os
@@ -32,16 +33,12 @@ from pathlib import Path
 _SYSTEM = platform.system()  # "Windows" | "Darwin" | "Linux"
 
 # Task / service / agent identifiers per platform
-_TASK_NAME = "ContextPilotProxy"                                     # Windows
-_LAUNCHD_LABEL = "org.contextpilot.proxy"                           # macOS
-_SYSTEMD_UNIT = "contextpilot-proxy.service"                        # Linux
+_TASK_NAME = "ContextPilotProxy"  # Windows
+_LAUNCHD_LABEL = "org.contextpilot.proxy"  # macOS
+_SYSTEMD_UNIT = "contextpilot-proxy.service"  # Linux
 
-_LAUNCHD_PLIST = (
-    Path.home() / "Library" / "LaunchAgents" / f"{_LAUNCHD_LABEL}.plist"
-)
-_SYSTEMD_PATH = (
-    Path.home() / ".config" / "systemd" / "user" / _SYSTEMD_UNIT
-)
+_LAUNCHD_PLIST = Path.home() / "Library" / "LaunchAgents" / f"{_LAUNCHD_LABEL}.plist"
+_SYSTEMD_PATH = Path.home() / ".config" / "systemd" / "user" / _SYSTEMD_UNIT
 _LOG_PATH = Path.home() / ".contextpilot" / "proxy.log"
 
 _ENV_KEY = "ANTHROPIC_BASE_URL"
@@ -50,6 +47,7 @@ _ENV_KEY = "ANTHROPIC_BASE_URL"
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def install(port: int = 8432, host: str = "127.0.0.1") -> None:
     """Register the proxy as a startup service and set ANTHROPIC_BASE_URL."""
@@ -102,6 +100,7 @@ def status() -> None:
 # Windows — Task Scheduler
 # ---------------------------------------------------------------------------
 
+
 def _pythonw() -> str:
     """Return pythonw.exe (no console window) or python.exe as fallback."""
     exe = Path(sys.executable)
@@ -143,9 +142,7 @@ def _windows_task_xml(port: int, host: str) -> str:
 
 def _windows_install(port: int, host: str) -> None:
     xml = _windows_task_xml(port, host)
-    with tempfile.NamedTemporaryFile(
-        suffix=".xml", delete=False, mode="w", encoding="utf-16"
-    ) as f:
+    with tempfile.NamedTemporaryFile(suffix=".xml", delete=False, mode="w", encoding="utf-16") as f:
         f.write(xml)
         tmp = f.name
     try:
@@ -163,7 +160,8 @@ def _windows_uninstall() -> None:
 def _windows_status() -> None:
     result = subprocess.run(
         ["schtasks", "/query", "/tn", _TASK_NAME, "/fo", "LIST"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != 0:
         print("Service not installed.")
@@ -174,6 +172,7 @@ def _windows_status() -> None:
 # ---------------------------------------------------------------------------
 # macOS — launchd
 # ---------------------------------------------------------------------------
+
 
 def _macos_plist(port: int, host: str) -> str:
     log = str(_LOG_PATH)
@@ -227,7 +226,8 @@ def _macos_uninstall() -> None:
 def _macos_status() -> None:
     result = subprocess.run(
         ["launchctl", "list", _LAUNCHD_LABEL],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != 0:
         print("Service not installed or not running.")
@@ -238,6 +238,7 @@ def _macos_status() -> None:
 # ---------------------------------------------------------------------------
 # Linux — systemd user service
 # ---------------------------------------------------------------------------
+
 
 def _systemd_unit(port: int, host: str) -> str:
     python = sys.executable
@@ -278,7 +279,8 @@ def _linux_uninstall() -> None:
 def _linux_status() -> None:
     result = subprocess.run(
         ["systemctl", "--user", "status", _SYSTEMD_UNIT],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     print(result.stdout.strip() or "Service not installed.")
 
@@ -286,6 +288,7 @@ def _linux_status() -> None:
 # ---------------------------------------------------------------------------
 # Environment variable management
 # ---------------------------------------------------------------------------
+
 
 def _set_env(url: str) -> None:
     if _SYSTEM == "Windows":
@@ -304,9 +307,8 @@ def _unset_env() -> None:
 def _windows_delete_env(key: str) -> None:
     try:
         import winreg
-        reg_key = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER, "Environment", 0, winreg.KEY_SET_VALUE
-        )
+
+        reg_key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", 0, winreg.KEY_SET_VALUE)
         winreg.DeleteValue(reg_key, key)
         winreg.CloseKey(reg_key)
     except (ImportError, FileNotFoundError, OSError):
@@ -333,8 +335,7 @@ def _shell_set_env(key: str, value: str) -> None:
         text = profile.read_text(encoding="utf-8")
         # Remove any previous contextpilot-managed line for this key
         cleaned = "\n".join(
-            line for line in text.splitlines()
-            if not (f"export {key}=" in line and _MARKER in line)
+            line for line in text.splitlines() if not (f"export {key}=" in line and _MARKER in line)
         )
         profile.write_text(cleaned.rstrip() + f"\n{line}\n", encoding="utf-8")
 
@@ -343,8 +344,7 @@ def _shell_unset_env(key: str) -> None:
     for profile in _shell_profiles():
         text = profile.read_text(encoding="utf-8")
         cleaned = "\n".join(
-            line for line in text.splitlines()
-            if not (f"export {key}=" in line and _MARKER in line)
+            line for line in text.splitlines() if not (f"export {key}=" in line and _MARKER in line)
         )
         profile.write_text(cleaned.rstrip() + "\n", encoding="utf-8")
 
@@ -353,9 +353,8 @@ def _shell_unset_env(key: str) -> None:
 # Shared helper
 # ---------------------------------------------------------------------------
 
+
 def _run(cmd: list[str]) -> None:
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        raise RuntimeError(
-            f"Command failed: {' '.join(cmd)}\n{result.stderr.strip()}"
-        )
+        raise RuntimeError(f"Command failed: {' '.join(cmd)}\n{result.stderr.strip()}")

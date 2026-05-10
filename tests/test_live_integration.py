@@ -4,6 +4,7 @@ These tests use the actual openai SDK pointed at a localhost mock. They prove
 that the wrapper intercepts calls, compresses messages, and sends them over
 the wire exactly as a production call would — without spending any API credits.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -34,6 +35,7 @@ def openai_client(server: MockOpenAIServer) -> OpenAI:
 # ---------------------------------------------------------------------------
 # FR-001: wrapper is transparent — response comes back unchanged
 # ---------------------------------------------------------------------------
+
 
 def test_response_returned_to_caller(server: MockOpenAIServer):
     client = contextpilot.wrap(openai_client(server))
@@ -71,6 +73,7 @@ def test_extra_kwargs_forwarded(server: MockOpenAIServer):
 # Short conversation — no compression expected (within history window)
 # ---------------------------------------------------------------------------
 
+
 def test_short_conv_passes_through_unchanged(server: MockOpenAIServer):
     client = contextpilot.wrap(openai_client(server))
     messages = [
@@ -88,6 +91,7 @@ def test_short_conv_passes_through_unchanged(server: MockOpenAIServer):
 # Long conversation — history summarization fires
 # ---------------------------------------------------------------------------
 
+
 def test_long_conv_is_compressed_over_wire(server: MockOpenAIServer):
     """Verify that fewer messages hit the wire after history compression."""
     client = contextpilot.wrap(
@@ -99,10 +103,7 @@ def test_long_conv_is_compressed_over_wire(server: MockOpenAIServer):
         "domain knowledge, and examples relevant to the current conversation thread. "
     ) * 3  # ~90 words per message
 
-    messages = [
-        {"role": "user", "content": f"Turn {i}: {long_content}"}
-        for i in range(10)
-    ]
+    messages = [{"role": "user", "content": f"Turn {i}: {long_content}"} for i in range(10)]
     client.chat.completions.create(model="gpt-4o", messages=messages)
 
     sent = server.last_messages()
@@ -125,10 +126,7 @@ def test_recent_turns_always_preserved(server: MockOpenAIServer):
     )
     long_content = "word " * 60  # 60 tokens each
 
-    messages = [
-        {"role": "user", "content": f"Old turn {i}: {long_content}"}
-        for i in range(8)
-    ] + [
+    messages = [{"role": "user", "content": f"Old turn {i}: {long_content}"} for i in range(8)] + [
         {"role": "user", "content": "Recent turn A — must arrive unchanged."},
         {"role": "user", "content": "Recent turn B — must arrive unchanged."},
     ]
@@ -142,6 +140,7 @@ def test_recent_turns_always_preserved(server: MockOpenAIServer):
 # ---------------------------------------------------------------------------
 # Zero-trust: no prompt content in telemetry
 # ---------------------------------------------------------------------------
+
 
 def test_no_prompt_content_in_telemetry(server: MockOpenAIServer):
     """FR-006: telemetry must never contain prompt text."""
@@ -165,6 +164,7 @@ def test_no_prompt_content_in_telemetry(server: MockOpenAIServer):
 # ---------------------------------------------------------------------------
 # System prompt forwarding
 # ---------------------------------------------------------------------------
+
 
 def test_system_prompt_is_forwarded(server: MockOpenAIServer):
     """System prompt should reach the mock server in the messages list."""

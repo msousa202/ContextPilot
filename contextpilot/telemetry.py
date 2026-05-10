@@ -24,9 +24,7 @@ class TelemetryEvent:
     """
 
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     provider: str = "unknown"
     model: str = "unknown"
     tokens_input_original: int = 0

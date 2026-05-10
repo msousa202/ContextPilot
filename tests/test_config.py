@@ -13,10 +13,12 @@ def test_defaults():
 
 
 def test_load_from_dict():
-    cfg = ContextPilotConfig.model_validate({
-        "compression": {"level": "aggressive", "quality_threshold": 70.0},
-        "shadow_testing": {"enabled": True, "sample_rate": 0.10},
-    })
+    cfg = ContextPilotConfig.model_validate(
+        {
+            "compression": {"level": "aggressive", "quality_threshold": 70.0},
+            "shadow_testing": {"enabled": True, "sample_rate": 0.10},
+        }
+    )
     assert cfg.compression.level == "aggressive"
     assert cfg.compression.quality_threshold == 70.0
     assert cfg.shadow_testing.enabled is True
@@ -40,9 +42,7 @@ def test_load_no_file():
 
 def test_load_from_yaml_file(tmp_path):
     yaml_file = tmp_path / "contextpilot.yaml"
-    yaml_file.write_text(
-        "compression:\n  level: conservative\n  history_window: 3\n"
-    )
+    yaml_file.write_text("compression:\n  level: conservative\n  history_window: 3\n")
     cfg = ContextPilotConfig.load(path=str(yaml_file))
     assert cfg.compression.level == "conservative"
     assert cfg.compression.history_window == 3

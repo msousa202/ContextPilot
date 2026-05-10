@@ -22,12 +22,12 @@ class MessageBlock:
     index: int
     role: str
     content: str
-    staleness: float       # 0.0 = fresh (recent), 1.0 = stale (old)
-    redundancy: float      # 0.0 = unique, 1.0 = duplicate of another block
-    relevance: float       # 0.0 = irrelevant, 1.0 = highly relevant to latest query
-    density: float         # 0.0 = sparse, 1.0 = information-dense
+    staleness: float  # 0.0 = fresh (recent), 1.0 = stale (old)
+    redundancy: float  # 0.0 = unique, 1.0 = duplicate of another block
+    relevance: float  # 0.0 = irrelevant, 1.0 = highly relevant to latest query
+    density: float  # 0.0 = sparse, 1.0 = information-dense
     classification: BlockClass = BlockClass.ESSENTIAL
-    token_count: int = 0   # approximate word-based count
+    token_count: int = 0  # approximate word-based count
 
     @property
     def composite_score(self) -> float:
@@ -66,9 +66,7 @@ class Analyzer:
     def __init__(self, config: ContextPilotConfig) -> None:
         self.config = config
 
-    def analyze(
-        self, messages: list[dict], system: str | None = None
-    ) -> list[MessageBlock]:
+    def analyze(self, messages: list[dict], system: str | None = None) -> list[MessageBlock]:
         n = len(messages)
         if n == 0:
             return []

@@ -8,6 +8,7 @@ Usage:
     contextpilot migrate ./src/ --dry-run
     contextpilot migrate ./src/ --apply
 """
+
 from __future__ import annotations
 
 import ast
@@ -17,9 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 # Constructor names that signal an LLM client being created.
-_LLM_NAMES: frozenset[str] = frozenset(
-    {"OpenAI", "AsyncOpenAI", "Anthropic", "AsyncAnthropic"}
-)
+_LLM_NAMES: frozenset[str] = frozenset({"OpenAI", "AsyncOpenAI", "Anthropic", "AsyncAnthropic"})
 # Top-level module names whose attributes we also recognise.
 _LLM_MODULES: frozenset[str] = frozenset({"openai", "anthropic"})
 
@@ -27,6 +26,7 @@ _LLM_MODULES: frozenset[str] = frozenset({"openai", "anthropic"})
 # ---------------------------------------------------------------------------
 # AST helpers
 # ---------------------------------------------------------------------------
+
 
 def _is_llm_call(node: ast.expr) -> bool:
     """Return True if *node* is a direct or module-qualified LLM constructor call."""
@@ -68,6 +68,7 @@ def _last_import_line(tree: ast.Module) -> int:
 # Source-level rewriting utilities
 # ---------------------------------------------------------------------------
 
+
 def _line_offsets(source: str) -> list[int]:
     """Return cumulative byte offsets for the start of each line (0-indexed by lineno-1)."""
     offsets = [0]
@@ -82,9 +83,9 @@ def _char_offset(offsets: list[int], lineno: int, col: int) -> int:
 
 @dataclass
 class _Replacement:
-    start: int   # char offset in source
-    end: int     # char offset in source
-    text: str    # replacement text
+    start: int  # char offset in source
+    end: int  # char offset in source
+    text: str  # replacement text
 
 
 def _apply_replacements(source: str, replacements: list[_Replacement]) -> str:
@@ -97,6 +98,7 @@ def _apply_replacements(source: str, replacements: list[_Replacement]) -> str:
 # ---------------------------------------------------------------------------
 # Per-file transformation
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class FileResult:
@@ -149,7 +151,7 @@ def _transform_source(source: str, path: Path) -> FileResult:
             continue
 
         start = _char_offset(offsets, call.lineno, call.col_offset)  # type: ignore[attr-defined]
-        end = _char_offset(offsets, call.end_lineno, call.end_col_offset)  # type: ignore[attr-defined]
+        end = _char_offset(offsets, call.end_lineno, call.end_col_offset)  # type: ignore[attr-defined, arg-type]
 
         # Guard: don't double-wrap if the segment already starts with contextpilot.wrap
         if segment.startswith("contextpilot.wrap("):
@@ -181,6 +183,7 @@ def _transform_source(source: str, path: Path) -> FileResult:
 # ---------------------------------------------------------------------------
 # Agent entry point
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class MigrationAgent:

@@ -12,12 +12,12 @@ def _response_text(response: object) -> str:
     """Extract text from an OpenAI or Anthropic response object."""
     # OpenAI: response.choices[0].message.content
     try:
-        return response.choices[0].message.content or ""  # type: ignore[union-attr]
+        return response.choices[0].message.content or ""  # type: ignore[attr-defined]
     except AttributeError:
         pass
     # Anthropic: response.content[0].text
     try:
-        return response.content[0].text or ""  # type: ignore[union-attr]
+        return response.content[0].text or ""  # type: ignore[attr-defined]
     except (AttributeError, IndexError):
         pass
     return str(response)

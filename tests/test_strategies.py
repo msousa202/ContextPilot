@@ -13,6 +13,7 @@ def cfg(**kwargs) -> ContextPilotConfig:
 
 # --- History summarization ---
 
+
 def test_history_no_compression_within_window():
     config = cfg(history_window=6)
     messages = [{"role": "user", "content": f"msg {i}"} for i in range(4)]
@@ -37,11 +38,26 @@ def test_history_summary_reduces_tokens():
     config = cfg(history_window=2)
     # Each message is long enough that a compact summary header is cheaper than the full text
     messages = [
-        {"role": "user", "content": "Can you explain the complete mechanism of photosynthesis including all the stages, the role of chlorophyll, the light-dependent reactions, and the Calvin cycle in detail?"},
-        {"role": "assistant", "content": "Photosynthesis is a two-stage process. The light-dependent reactions occur in the thylakoid membranes where chlorophyll absorbs photons and splits water molecules, producing ATP, NADPH, and oxygen as a byproduct. The Calvin cycle then uses these energy carriers in the stroma to fix carbon dioxide into glucose through a series of enzymatic reactions."},
-        {"role": "user", "content": "What specific role does chlorophyll play in capturing light energy and how does its molecular structure contribute to this function?"},
-        {"role": "assistant", "content": "Chlorophyll contains a porphyrin ring with a magnesium atom at its center, surrounded by alternating single and double bonds that create a conjugated system. This conjugation allows the molecule to absorb red and blue wavelengths while reflecting green, which is why plants appear green. The absorbed photon energy excites electrons which then pass through the electron transport chain."},
-        {"role": "user", "content": "How is glucose ultimately used by the plant after it is synthesized?"},
+        {
+            "role": "user",
+            "content": "Can you explain the complete mechanism of photosynthesis including all the stages, the role of chlorophyll, the light-dependent reactions, and the Calvin cycle in detail?",
+        },
+        {
+            "role": "assistant",
+            "content": "Photosynthesis is a two-stage process. The light-dependent reactions occur in the thylakoid membranes where chlorophyll absorbs photons and splits water molecules, producing ATP, NADPH, and oxygen as a byproduct. The Calvin cycle then uses these energy carriers in the stroma to fix carbon dioxide into glucose through a series of enzymatic reactions.",
+        },
+        {
+            "role": "user",
+            "content": "What specific role does chlorophyll play in capturing light energy and how does its molecular structure contribute to this function?",
+        },
+        {
+            "role": "assistant",
+            "content": "Chlorophyll contains a porphyrin ring with a magnesium atom at its center, surrounded by alternating single and double bonds that create a conjugated system. This conjugation allows the molecule to absorb red and blue wavelengths while reflecting green, which is why plants appear green. The absorbed photon energy excites electrons which then pass through the electron transport chain.",
+        },
+        {
+            "role": "user",
+            "content": "How is glucose ultimately used by the plant after it is synthesized?",
+        },
     ]
     blocks = Analyzer(config).analyze(messages)
     result = summarize_old_turns(messages, blocks, config)
@@ -51,6 +67,7 @@ def test_history_summary_reduces_tokens():
 
 
 # --- System prompt dedup ---
+
 
 def test_dedup_first_call_unchanged():
     d = SystemPromptDeduplicator()
@@ -85,6 +102,7 @@ def test_dedup_changed_system_not_truncated():
 
 # --- RAG chunk pruning ---
 
+
 def _rag_msg(chunks: list[str]) -> dict:
     return {
         "role": "user",
@@ -117,6 +135,7 @@ def test_rag_prune_never_empties_message():
 
 
 # --- Structural stripping ---
+
 
 def test_strip_excessive_blank_lines():
     text = "Hello\n\n\n\n\nWorld"
@@ -153,6 +172,7 @@ def test_structural_messages_roundtrip():
 
 
 # --- Agent memory ---
+
 
 def test_agent_memory_removes_scaffolding():
     output = (
