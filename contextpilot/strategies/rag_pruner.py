@@ -16,10 +16,22 @@ _CHUNK_DELIMITERS = re.compile(
 
 
 def _split_chunks(text: str) -> list[str]:
-    """Split text into RAG chunks if chunk delimiters are present."""
+    """Split text into RAG chunks — explicit delimiters or paragraph boundaries.
+
+    Real RAG pipelines rarely use structured delimiters. As a fallback, split
+    on double newlines when a message has 3+ paragraphs.
+    """
     parts = _CHUNK_DELIMITERS.split(text)
     chunks = [p.strip() for p in parts if p.strip()]
-    return chunks if len(chunks) > 1 else [text]
+    if len(chunks) > 1:
+        return chunks
+
+    # Paragraph-level fallback: split on blank lines
+    paragraphs = [p.strip() for p in re.split(r"\n{2,}", text) if p.strip()]
+    if len(paragraphs) >= 3:
+        return paragraphs
+
+    return [text]
 
 
 def prune_rag_chunks(

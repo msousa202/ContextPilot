@@ -110,7 +110,7 @@ def test_long_conv_is_compressed_over_wire(server: MockOpenAIServer):
         f"Expected fewer than {len(messages)} messages on the wire, got {len(sent)}"
     )
     # First message should be the summary block
-    assert "[CTX" in sent[0]["content"]
+    assert "Prior context" in sent[0]["content"]
     # Last 3 messages preserved (structural stripping may remove trailing whitespace)
     for sent_msg, orig_msg in zip(sent[-3:], messages[-3:]):
         assert sent_msg["role"] == orig_msg["role"]

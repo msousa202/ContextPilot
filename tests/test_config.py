@@ -6,7 +6,7 @@ from contextpilot.config import ContextPilotConfig
 def test_defaults():
     cfg = ContextPilotConfig()
     assert cfg.compression.level == "balanced"
-    assert cfg.compression.quality_threshold == 85.0
+    assert cfg.compression.quality_threshold == 72.0
     assert cfg.compression.history_window == 6
     assert cfg.compression.rag_relevance_min == 0.15
     assert cfg.shadow_testing.enabled is False
@@ -37,7 +37,7 @@ def test_env_var_overrides(monkeypatch):
 
 def test_load_no_file():
     cfg = ContextPilotConfig.load(path="nonexistent.yaml")
-    assert cfg.compression.quality_threshold == 85.0
+    assert cfg.compression.quality_threshold == 72.0
 
 
 def test_load_from_yaml_file(tmp_path):

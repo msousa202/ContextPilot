@@ -29,7 +29,7 @@ def test_history_compresses_old_turns():
     result = summarize_old_turns(messages, blocks, config)
     # Result has summary block + 3 recent turns = 4 total
     assert len(result) == 4
-    assert "[CTX" in result[0]["content"]
+    assert "Prior context" in result[0]["content"]
     # Recent turns unchanged
     assert result[1:] == messages[-3:]
 
