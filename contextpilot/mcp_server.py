@@ -40,6 +40,34 @@ from contextpilot.config import ContextPilotConfig
 from contextpilot.pipeline import Pipeline
 from contextpilot.telemetry import _LOCAL_LOG
 
+# $/1M-token input rates for common models
+_PRICING: dict[str, float] = {
+    "gpt-4o": 5.00,
+    "gpt-4o-mini": 0.15,
+    "gpt-4-turbo": 10.00,
+    "gpt-4": 30.00,
+    "gpt-3.5-turbo": 0.50,
+    "claude-opus": 15.00,
+    "claude-sonnet": 3.00,
+    "claude-haiku": 0.25,
+}
+_DEFAULT_RATE = 5.00
+
+
+def _rate_for(model: str) -> float:
+    m = model.lower()
+    for key, rate in _PRICING.items():
+        if key in m:
+            return rate
+    return _DEFAULT_RATE
+
+
+def _bar(ratio: float, width: int = 28) -> str:
+    """ASCII progress bar. Filled portion = amount saved."""
+    filled = round(max(0.0, min(1.0, ratio)) * width)
+    return "█" * filled + "░" * (width - filled)
+
+
 _cfg = ContextPilotConfig.load()
 _pipeline = Pipeline(_cfg)
 
@@ -92,16 +120,30 @@ def optimize_context(
     comp = event.tokens_input_compressed
     saved = orig - comp
 
+    reduction_pct = round(saved / orig * 100, 1) if orig else 0.0
+    quality = round(event.quality_score, 1)
+    ms = round(event.compression_ms, 2)
+
+    if event.fallback_triggered:
+        summary = f"No compression applied — quality gate protected the original payload ({quality}/100 score, {ms} ms)"
+    else:
+        summary = (
+            f"Compressed {orig:,} → {comp:,} tokens  ·  "
+            f"{reduction_pct}% reduction  ·  "
+            f"quality {quality}/100  ·  {ms} ms"
+        )
+
     return {
         "messages": optimized_msgs,
         "system": optimized_sys or system or None,
         "tokens_original": orig,
         "tokens_compressed": comp,
         "tokens_saved": saved,
-        "reduction_pct": round(saved / orig * 100, 1) if orig else 0.0,
-        "quality_score": round(event.quality_score, 1),
+        "reduction_pct": reduction_pct,
+        "quality_score": quality,
         "fallback_triggered": event.fallback_triggered,
-        "compression_ms": round(event.compression_ms, 2),
+        "compression_ms": ms,
+        "summary": summary,
     }
 
 
@@ -157,55 +199,12 @@ def optimize_llm_code(provider: str = "openai") -> str:
 def get_savings() -> str:
     """Live token savings summary from the local ContextPilot event log."""
     if not _LOCAL_LOG.exists():
-        return "No events recorded yet. Run API calls through ContextPilot to start tracking."
-
-    events: list[dict] = []
-    with _LOCAL_LOG.open(encoding="utf-8") as f:
-        for line in f:
-            s = line.strip()
-            if s:
-                try:
-                    events.append(json.loads(s))
-                except json.JSONDecodeError:
-                    pass
-
-    if not events:
-        return "Event log exists but is empty."
-
-    total = len(events)
-    orig = sum(e.get("tokens_input_original", 0) for e in events)
-    comp = sum(e.get("tokens_input_compressed", 0) for e in events)
-    saved = orig - comp
-    ratio = saved / orig * 100 if orig else 0.0
-    avg_q = sum(e.get("quality_score", 100.0) for e in events) / total
-    fallbacks = sum(1 for e in events if e.get("fallback_triggered"))
-
-    return (
-        f"ContextPilot Savings\n"
-        f"====================\n"
-        f"Total calls    : {total:,}\n"
-        f"Tokens saved   : {saved:,}  ({ratio:.1f}% reduction)\n"
-        f"Quality avg    : {avg_q:.1f}/100\n"
-        f"Fallback rate  : {fallbacks}/{total} ({fallbacks/total*100:.1f}%)\n"
-    )
-
-
-@mcp.resource("contextpilot://config/suggest")
-def suggest_config() -> str:
-    """Suggest optimal ContextPilot configuration based on recorded usage patterns."""
-    if not _LOCAL_LOG.exists():
-        return json.dumps(
-            {
-                "recommendation": (
-                    "No data yet. Start with balanced mode (default). "
-                    "Enable shadow_testing to compare compressed vs original quality."
-                ),
-                "suggested_config": {
-                    "compression": {"level": "balanced", "quality_threshold": 85},
-                    "shadow_testing": {"enabled": True, "sample_rate": 0.05},
-                },
-            },
-            indent=2,
+        return (
+            "No events recorded yet.\n"
+            "Route API calls through ContextPilot to start tracking:\n\n"
+            "  Library : client = contextpilot.wrap(OpenAI())\n"
+            "  Proxy   : export ANTHROPIC_BASE_URL=http://localhost:8432\n"
+            "  MCP     : call optimize_context with your message array\n"
         )
 
     events: list[dict] = []
@@ -219,32 +218,129 @@ def suggest_config() -> str:
                     pass
 
     if not events:
-        return json.dumps({"recommendation": "No events recorded yet."})
+        return "Event log is empty — no valid entries found."
 
-    avg_q = sum(e.get("quality_score", 100.0) for e in events) / len(events)
-    fallback_rate = sum(1 for e in events if e.get("fallback_triggered")) / len(events)
+    total = len(events)
+    orig = sum(e.get("tokens_input_original", 0) for e in events)
+    comp = sum(e.get("tokens_input_compressed", 0) for e in events)
+    saved = orig - comp
+    ratio = saved / orig if orig else 0.0
+    avg_q = sum(e.get("quality_score", 100.0) for e in events) / total
+    fallbacks = sum(1 for e in events if e.get("fallback_triggered"))
+
+    saved_usd = sum(
+        (e.get("tokens_input_original", 0) - e.get("tokens_input_compressed", 0))
+        / 1_000_000
+        * _rate_for(e.get("model", ""))
+        for e in events
+    )
+
+    bar = _bar(ratio)
+    ratio_pct = ratio * 100
+    fallback_pct = fallbacks / total * 100
+
+    quality_indicator = "✓" if avg_q >= 85 else "⚠"
+
+    lines = [
+        "╭─────────────────────────────────────────╮",
+        "│  ContextPilot  ·  Live Savings Report   │",
+        "╰─────────────────────────────────────────╯",
+        "",
+        f"  Calls processed  :  {total:,}",
+        "",
+        "  Token reduction",
+        f"  {bar}  {ratio_pct:.1f}% saved",
+        f"  {orig:,} → {comp:,}  (saved {saved:,} tokens)",
+        "",
+        f"  Quality avg      :  {avg_q:.1f} / 100  {quality_indicator}",
+        f"  Fallback rate    :  {fallbacks}/{total}  ({fallback_pct:.1f}%)",
+        f"  Est. cost saved  :  ~${saved_usd:.4f}",
+        "",
+        f"  Log: {_LOCAL_LOG}",
+    ]
+    return "\n".join(lines)
+
+
+@mcp.resource("contextpilot://config/suggest")
+def suggest_config() -> str:
+    """Suggest optimal ContextPilot configuration based on recorded usage patterns."""
+    if not _LOCAL_LOG.exists():
+        lines = [
+            "ContextPilot — Config Recommendation",
+            "=====================================",
+            "",
+            "  Status        No usage data yet",
+            "  Recommendation  Start with balanced mode (default)",
+            "",
+            "  Suggested contextpilot.yaml:",
+            "    compression:",
+            "      level: balanced",
+            "      quality_threshold: 85",
+            "    shadow_testing:",
+            "      enabled: true",
+            "      sample_rate: 0.05   # compare 5% of calls to validate savings",
+            "",
+            "  Once you have recorded calls, run this resource again for a",
+            "  data-driven recommendation.",
+        ]
+        return "\n".join(lines)
+
+    events: list[dict] = []
+    with _LOCAL_LOG.open(encoding="utf-8") as f:
+        for line in f:
+            s = line.strip()
+            if s:
+                try:
+                    events.append(json.loads(s))
+                except json.JSONDecodeError:
+                    pass
+
+    if not events:
+        return "Event log is empty — no valid entries found."
+
+    total = len(events)
+    avg_q = sum(e.get("quality_score", 100.0) for e in events) / total
+    fallback_rate = sum(1 for e in events if e.get("fallback_triggered")) / total
 
     if avg_q > 95 and fallback_rate < 0.05:
-        level, rec = "aggressive", "Quality is high and fallbacks are rare. Aggressive mode will save more tokens."
+        level = "aggressive"
+        verdict = "UPGRADE TO AGGRESSIVE"
+        reason = (
+            f"Quality is excellent ({avg_q:.1f}/100) and fallbacks are rare "
+            f"({fallback_rate*100:.1f}%). Aggressive mode will save more tokens."
+        )
     elif fallback_rate > 0.20:
-        level, rec = "conservative", "High fallback rate. Switch to conservative for better quality preservation."
+        level = "conservative"
+        verdict = "DOWNGRADE TO CONSERVATIVE"
+        reason = (
+            f"Fallback rate is high ({fallback_rate*100:.1f}%). Conservative mode "
+            f"will preserve more content and reduce fallbacks."
+        )
     else:
-        level, rec = "balanced", "Balanced mode is working well for your workload."
+        level = "balanced"
+        verdict = "KEEP BALANCED MODE"
+        reason = (
+            f"Quality ({avg_q:.1f}/100) and fallback rate ({fallback_rate*100:.1f}%) "
+            f"are within healthy ranges. Balanced mode is well-suited to your workload."
+        )
 
-    return json.dumps(
-        {
-            "recommendation": rec,
-            "observed": {
-                "avg_quality_score": round(avg_q, 1),
-                "fallback_rate_pct": round(fallback_rate * 100, 1),
-                "total_events": len(events),
-            },
-            "suggested_config": {
-                "compression": {"level": level, "quality_threshold": 85},
-            },
-        },
-        indent=2,
-    )
+    lines = [
+        "ContextPilot — Config Recommendation",
+        "=====================================",
+        "",
+        f"  Verdict       {verdict}",
+        f"  Reason        {reason}",
+        "",
+        f"  Observed usage  ({total:,} calls)",
+        f"    Avg quality score  :  {avg_q:.1f} / 100",
+        f"    Fallback rate      :  {fallback_rate*100:.1f}%  ({round(fallback_rate*total)}/{total})",
+        "",
+        "  Suggested contextpilot.yaml:",
+        "    compression:",
+        f"      level: {level}",
+        "      quality_threshold: 85",
+    ]
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------

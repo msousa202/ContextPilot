@@ -37,6 +37,15 @@ def _rate_for(model: str) -> float:
     return _DEFAULT_RATE
 
 
+def _bar(ratio: float, width: int = 28) -> str:
+    import sys
+    use_unicode = getattr(sys.stdout, "encoding", "").lower().replace("-", "") in ("utf8", "utf16", "utf32")
+    filled = round(max(0.0, min(1.0, ratio)) * width)
+    if use_unicode:
+        return "█" * filled + "░" * (width - filled)
+    return "[" + "#" * filled + "-" * (width - filled) + "]"
+
+
 @click.group()
 @click.version_option(package_name="contextpilot-ai")
 def main() -> None:
@@ -224,18 +233,23 @@ def report(tail: int) -> None:
         for e in events
     )
 
-    ratio = (saved_tokens / orig_tokens * 100) if orig_tokens else 0.0
+    ratio = (saved_tokens / orig_tokens) if orig_tokens else 0.0
+    ratio_pct = ratio * 100
+    fallback_pct = fallbacks / total * 100
+    quality_indicator = "✓" if avg_quality >= 85 else "⚠"
 
     click.echo()
     click.echo("  ContextPilot — Savings Report")
-    click.echo("  " + "─" * 36)
-    click.echo(f"  Total calls logged   : {total:,}")
-    click.echo(f"  Fallback rate        : {fallbacks}/{total} ({fallbacks/total*100:.1f}%)")
-    click.echo(f"  Tokens in (original) : {orig_tokens:,}")
-    click.echo(f"  Tokens in (sent)     : {comp_tokens:,}")
-    click.echo(f"  Tokens saved         : {saved_tokens:,}  ({ratio:.1f}% reduction)")
-    click.echo(f"  Avg quality score    : {avg_quality:.1f}/100")
-    click.echo(f"  Est. cost saved      : ${saved_usd:.4f}")
+    click.echo("  " + "─" * 40)
+    click.echo(f"  Calls logged   :  {total:,}")
+    click.echo()
+    click.echo("  Token reduction")
+    click.echo(f"  {_bar(ratio)}  {ratio_pct:.1f}% saved")
+    click.echo(f"  {orig_tokens:,} → {comp_tokens:,}  (saved {saved_tokens:,} tokens)")
+    click.echo()
+    click.echo(f"  Quality avg    :  {avg_quality:.1f} / 100  {quality_indicator}")
+    click.echo(f"  Fallback rate  :  {fallbacks}/{total}  ({fallback_pct:.1f}%)")
+    click.echo(f"  Est. cost saved:  ~${saved_usd:.4f}")
     click.echo()
     click.echo(f"  Log: {_LOCAL_LOG}")
     click.echo()

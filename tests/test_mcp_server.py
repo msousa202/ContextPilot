@@ -160,13 +160,13 @@ class TestGetSavings:
 # ---------------------------------------------------------------------------
 
 class TestSuggestConfig:
-    def test_no_log_returns_json(self, tmp_path):
+    def test_no_log_returns_recommendation(self, tmp_path):
         fake_log = tmp_path / "events.jsonl"
         with patch("contextpilot.mcp_server._LOCAL_LOG", fake_log):
             result = suggest_config()
-        data = json.loads(result)
-        assert "suggested_config" in data
-        assert "recommendation" in data
+        assert isinstance(result, str)
+        assert len(result) > 0
+        assert "balanced" in result.lower()
 
     def test_high_quality_suggests_aggressive(self, tmp_path):
         log = tmp_path / "events.jsonl"
@@ -180,8 +180,7 @@ class TestSuggestConfig:
 
         with patch("contextpilot.mcp_server._LOCAL_LOG", log):
             result = suggest_config()
-        data = json.loads(result)
-        assert data["suggested_config"]["compression"]["level"] == "aggressive"
+        assert "aggressive" in result.lower()
 
     def test_high_fallback_suggests_conservative(self, tmp_path):
         log = tmp_path / "events.jsonl"
@@ -195,8 +194,7 @@ class TestSuggestConfig:
 
         with patch("contextpilot.mcp_server._LOCAL_LOG", log):
             result = suggest_config()
-        data = json.loads(result)
-        assert data["suggested_config"]["compression"]["level"] == "conservative"
+        assert "conservative" in result.lower()
 
     def test_moderate_suggests_balanced(self, tmp_path):
         log = tmp_path / "events.jsonl"
@@ -210,14 +208,14 @@ class TestSuggestConfig:
 
         with patch("contextpilot.mcp_server._LOCAL_LOG", log):
             result = suggest_config()
-        data = json.loads(result)
-        assert data["suggested_config"]["compression"]["level"] == "balanced"
+        assert "balanced" in result.lower()
 
-    def test_returns_valid_json(self, tmp_path):
+    def test_returns_string(self, tmp_path):
         fake_log = tmp_path / "no_log.jsonl"
         with patch("contextpilot.mcp_server._LOCAL_LOG", fake_log):
             result = suggest_config()
-        json.loads(result)  # must not raise
+        assert isinstance(result, str)
+        assert len(result) > 0
 
 
 # ---------------------------------------------------------------------------
