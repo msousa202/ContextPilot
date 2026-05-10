@@ -1,20 +1,17 @@
 """Tests for FR-011: CLI migration agent (contextpilot/migrate.py)."""
 from __future__ import annotations
 
+import ast
 import textwrap
 from pathlib import Path
-
-import pytest
 
 from contextpilot.migrate import (
     MigrationAgent,
     _has_contextpilot_import,
     _is_llm_call,
-    _transform_source,
     _last_import_line,
+    _transform_source,
 )
-import ast
-
 
 # ---------------------------------------------------------------------------
 # AST helper unit tests
@@ -122,7 +119,7 @@ class TestTransformSource:
             """
         r = self._result(src)
         lines = r.rewritten.splitlines()
-        import_line_idx = next(i for i, l in enumerate(lines) if l.strip() == "import contextpilot")
+        import_line_idx = next(i for i, ln in enumerate(lines) if ln.strip() == "import contextpilot")
         # Should appear after 'from openai import OpenAI' (line index 1)
         assert import_line_idx >= 1
 
@@ -188,10 +185,6 @@ class TestTransformSource:
 
     def test_no_import_block_prepend(self):
         """When there are no existing imports, add import contextpilot at top."""
-        src = """\
-            from openai import OpenAI
-            client = OpenAI()
-            """
         # Remove all imports manually to simulate no imports
         r = _transform_source("client = OpenAI()\n", Path("t.py"))
         # No imports at all — contextpilot import should be prepended

@@ -1,4 +1,3 @@
-import pytest
 from contextpilot.config import ContextPilotConfig
 from contextpilot.pipeline import Pipeline
 from contextpilot.telemetry import TelemetryEvent

@@ -2,19 +2,14 @@
 from __future__ import annotations
 
 import json
-import textwrap
-from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from contextpilot.mcp_server import (
+    get_savings,
     optimize_context,
     optimize_llm_code,
-    get_savings,
     suggest_config,
 )
-
 
 # ---------------------------------------------------------------------------
 # optimize_context tool
@@ -228,16 +223,18 @@ class TestMcpServerObject:
         assert mcp.name == "ContextPilot"
 
     def test_tools_registered(self):
-        from contextpilot.mcp_server import mcp
         import asyncio
+
+        from contextpilot.mcp_server import mcp
         tools = asyncio.run(mcp.list_tools())
         names = {t.name for t in tools}
         assert "optimize_context" in names
         assert "optimize_llm_code" in names
 
     def test_resources_registered(self):
-        from contextpilot.mcp_server import mcp
         import asyncio
+
+        from contextpilot.mcp_server import mcp
         resources = asyncio.run(mcp.list_resources())
         uris = {str(r.uri) for r in resources}
         assert "contextpilot://savings" in uris

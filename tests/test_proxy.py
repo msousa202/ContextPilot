@@ -1,7 +1,6 @@
 """Tests for FR-009: Local proxy server (contextpilot/proxy.py)."""
 from __future__ import annotations
 
-import json
 import pytest
 
 # ---------------------------------------------------------------------------
@@ -15,8 +14,7 @@ from starlette.testclient import TestClient  # noqa: E402
 
 from contextpilot.config import ContextPilotConfig
 from contextpilot.pipeline import Pipeline
-from contextpilot.proxy import _make_app, _detect_provider  # noqa: E402
-
+from contextpilot.proxy import _detect_provider, _make_app  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -46,13 +44,12 @@ class TestDetectProvider:
     def test_anthropic_via_header(self, app):
         from starlette.testclient import TestClient
         # Verify that anthropic-version header routes to anthropic
-        with TestClient(app) as c:
+        with TestClient(app) as _:
             # We can test the helper directly without making a full HTTP call
             pass  # tested via integration below
 
     def test_detect_provider_openai_default(self):
         """Paths without anthropic markers default to openai."""
-        from starlette.requests import Request
         from starlette.datastructures import Headers
 
         class _FakeRequest:
@@ -62,7 +59,6 @@ class TestDetectProvider:
         assert _detect_provider(_FakeRequest()) == "openai"  # type: ignore[arg-type]
 
     def test_detect_provider_anthropic_by_path(self):
-        from starlette.requests import Request
         from starlette.datastructures import Headers
 
         class _FakeRequest:

@@ -1,11 +1,10 @@
-import pytest
-from contextpilot.config import ContextPilotConfig
 from contextpilot.analyzer import Analyzer
-from contextpilot.strategies.history import summarize_old_turns
-from contextpilot.strategies.dedup import SystemPromptDeduplicator
-from contextpilot.strategies.rag_pruner import prune_rag_chunks
-from contextpilot.strategies.structural import strip_structural, apply_structural_stripping
+from contextpilot.config import ContextPilotConfig
 from contextpilot.strategies.agent_memory import compress_agent_handoff
+from contextpilot.strategies.dedup import SystemPromptDeduplicator
+from contextpilot.strategies.history import summarize_old_turns
+from contextpilot.strategies.rag_pruner import prune_rag_chunks
+from contextpilot.strategies.structural import apply_structural_stripping, strip_structural
 
 
 def cfg(**kwargs) -> ContextPilotConfig:

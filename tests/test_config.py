@@ -1,5 +1,3 @@
-import os
-import pytest
 from contextpilot.config import ContextPilotConfig
 
 

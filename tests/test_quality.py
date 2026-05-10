@@ -1,4 +1,3 @@
-import pytest
 from contextpilot.config import ContextPilotConfig
 from contextpilot.quality import QualityGate
 

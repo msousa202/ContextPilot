@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+
 from contextpilot.config import ContextPilotConfig
 
 # Markers that LangChain / CrewAI / AutoGen insert in chain-of-thought output

@@ -1,5 +1,4 @@
 """FR-008: Agent memory middleware tests."""
-import pytest
 from contextpilot.middleware import AgentMemory
 
 

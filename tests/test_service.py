@@ -2,9 +2,7 @@
 from __future__ import annotations
 
 import platform
-import subprocess
-from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -152,7 +150,6 @@ class TestRunHelper:
 class TestWindowsDeleteEnv:
     @pytest.mark.skipif(_SYSTEM != "Windows", reason="Windows only")
     def test_delete_missing_key_does_not_raise(self):
-        import winreg
         with patch("winreg.OpenKey") as mock_open, \
              patch("winreg.DeleteValue", side_effect=FileNotFoundError):
             mock_open.return_value.__enter__ = lambda s: s
@@ -168,6 +165,7 @@ class TestWindowsDeleteEnv:
 class TestServiceCli:
     def test_service_group_exists(self):
         from click.testing import CliRunner
+
         from contextpilot.cli import main
         runner = CliRunner()
         result = runner.invoke(main, ["service", "--help"])
@@ -178,6 +176,7 @@ class TestServiceCli:
 
     def test_install_command_exists(self):
         from click.testing import CliRunner
+
         from contextpilot.cli import main
         runner = CliRunner()
         result = runner.invoke(main, ["service", "install", "--help"])
@@ -187,6 +186,7 @@ class TestServiceCli:
 
     def test_install_propagates_runtime_error_as_click_exception(self):
         from click.testing import CliRunner
+
         from contextpilot.cli import main
         runner = CliRunner()
         with patch("contextpilot.service.install", side_effect=RuntimeError("boom")):
@@ -196,6 +196,7 @@ class TestServiceCli:
 
     def test_uninstall_propagates_runtime_error_as_click_exception(self):
         from click.testing import CliRunner
+
         from contextpilot.cli import main
         runner = CliRunner()
         with patch("contextpilot.service.uninstall", side_effect=RuntimeError("gone")):

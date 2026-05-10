@@ -5,7 +5,6 @@ import random
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from contextpilot._utils import flatten_messages
 from contextpilot.config import ContextPilotConfig
 
 

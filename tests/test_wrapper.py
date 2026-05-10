@@ -1,10 +1,12 @@
 """FR-001: SDK wrapper integration tests using mocked clients."""
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, patch
+
 import contextpilot
-from contextpilot.config import ContextPilotConfig
-from contextpilot.adapters.openai_adapter import OpenAIWrapper
 from contextpilot.adapters.anthropic_adapter import AnthropicWrapper
+from contextpilot.adapters.openai_adapter import OpenAIWrapper
+from contextpilot.config import ContextPilotConfig
 
 
 def make_openai_client() -> MagicMock:

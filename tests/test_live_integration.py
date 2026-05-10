@@ -9,10 +9,10 @@ from __future__ import annotations
 import pytest
 
 openai = pytest.importorskip("openai", reason="openai package not installed")
-from openai import OpenAI
+from openai import OpenAI  # noqa: E402
 
-import contextpilot
-from tests.mock_server import MockOpenAIServer
+import contextpilot  # noqa: E402
+from tests.mock_server import MockOpenAIServer  # noqa: E402
 
 
 @pytest.fixture(scope="module")
@@ -149,8 +149,8 @@ def test_no_prompt_content_in_telemetry(server: MockOpenAIServer):
         "telemetry": {"enabled": True, "api_key": None},
         "compression": {"history_window": 6},
     }
-    from contextpilot.pipeline import Pipeline
     from contextpilot.config import ContextPilotConfig
+    from contextpilot.pipeline import Pipeline
 
     pipeline = Pipeline(ContextPilotConfig.model_validate(cfg))
     secret = "TOP_SECRET_PASSWORD_XYZ"

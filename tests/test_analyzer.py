@@ -1,4 +1,3 @@
-import pytest
 from contextpilot.analyzer import Analyzer, BlockClass
 from contextpilot.config import ContextPilotConfig
 
