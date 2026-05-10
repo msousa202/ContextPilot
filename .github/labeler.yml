@@ -1,0 +1,60 @@
+# Maps PR file changes to labels.
+# Labels must exist in the repo before the labeler can apply them.
+# Create them at: github.com/msousa202/ContextPilot/labels
+
+"surface:library":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "contextpilot/wrapper.py"
+      - "contextpilot/pipeline.py"
+      - "contextpilot/analyzer.py"
+      - "contextpilot/compressor.py"
+      - "contextpilot/quality.py"
+      - "contextpilot/shadow.py"
+      - "contextpilot/telemetry.py"
+      - "contextpilot/config.py"
+      - "contextpilot/strategies/**"
+      - "contextpilot/adapters/**"
+      - "contextpilot/middleware.py"
+
+"surface:proxy":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "contextpilot/proxy.py"
+
+"surface:mcp":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "contextpilot/mcp_server.py"
+
+"surface:cli":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "contextpilot/cli.py"
+
+"documentation":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "**/*.md"
+      - "contextpilot.yaml.example"
+      - "docs/**"
+
+"testing":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "tests/**"
+      - "benchmarks/**"
+      - "conftest.py"
+      - "pytest.ini"
+
+"ci":
+  - changed-files:
+    - any-glob-to-any-file:
+      - ".github/**"
+      - ".pre-commit-config.yaml"
+
+"dependencies":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "pyproject.toml"
+      - "requirements*.txt"

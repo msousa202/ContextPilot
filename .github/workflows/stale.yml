@@ -1,0 +1,47 @@
+name: Stale Issues and PRs
+
+on:
+  schedule:
+    - cron: "0 8 * * *"  # Daily 08:00 UTC
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+          # Issues: stale after 60 days, closed after 14 more
+          days-before-issue-stale: 60
+          days-before-issue-close: 14
+          stale-issue-label: stale
+          stale-issue-message: >
+            This issue has been automatically marked as stale because it has had no
+            activity for 60 days. It will be closed in 14 days unless it receives a
+            comment or is labelled **pinned**. Thank you for contributing to ContextPilot!
+          close-issue-message: >
+            Closed automatically after 14 days with no activity following the stale
+            notice. Please re-open if this is still relevant — we are happy to revisit.
+
+          # PRs: stale after 30 days, closed after 14 more
+          days-before-pr-stale: 30
+          days-before-pr-close: 14
+          stale-pr-label: stale
+          stale-pr-message: >
+            This pull request has been automatically marked as stale because it has had
+            no activity for 30 days. It will be closed in 14 days unless it is updated.
+            Please rebase on `main` and push a new commit to revive it!
+          close-pr-message: >
+            Closed automatically after 14 days with no activity following the stale
+            notice. Please re-open and rebase on `main` if you would like to continue.
+
+          # Never go stale
+          exempt-issue-labels: "pinned,security,good first issue,help wanted"
+          exempt-pr-labels: "pinned,security"
+          exempt-all-milestones: true

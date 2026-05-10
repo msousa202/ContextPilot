@@ -1,0 +1,15 @@
+# Default owner for every file in the repository.
+# All pull requests require review from @msousa202.
+* @msousa202
+
+# Core compression engine — extra scrutiny
+contextpilot/quality.py @msousa202
+contextpilot/compressor.py @msousa202
+contextpilot/pipeline.py @msousa202
+
+# Security-sensitive: telemetry must never include prompt content
+contextpilot/telemetry.py @msousa202
+
+# Public API surface — must stay backward compatible
+contextpilot/wrapper.py @msousa202
+contextpilot/adapters/ @msousa202

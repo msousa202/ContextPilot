@@ -1,0 +1,44 @@
+name: Welcome New Contributors
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/first-interaction@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+          issue-message: |
+            Thanks for opening your first issue on ContextPilot!
+
+            A maintainer will take a look shortly. A few things that help us triage faster:
+            - **Bug?** Make sure you've filled in Python version, ContextPilot version, and a minimal reproducible example.
+            - **Question?** Check [the docs](https://contextpilot.org/docs) and existing issues first.
+            - **Feature request?** Describe the use case — not just the solution — so we can find the best approach together.
+
+            We appreciate you taking the time to report this!
+
+          pr-message: |
+            Thanks for your first pull request on ContextPilot!
+
+            Here is what happens next:
+            1. CI runs automatically — watch for the green checkmarks below.
+            2. A maintainer will review within a few days and may leave comments.
+            3. Requested changes are normal — don't be discouraged.
+
+            Before requesting a review, please confirm:
+            - Tests pass locally (`pytest`)
+            - Linting is clean (`ruff check contextpilot/ tests/`)
+            - `CHANGELOG.md` is updated if the change is user-visible
+
+            Thank you for contributing to ContextPilot!

@@ -1,0 +1,55 @@
+version: 2
+
+updates:
+  # Python dependencies — weekly on Mondays
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: "Europe/Lisbon"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    reviewers:
+      - msousa202
+    groups:
+      dev-tooling:
+        patterns:
+          - "ruff"
+          - "mypy"
+          - "pytest*"
+          - "hypothesis"
+          - "codecov*"
+      core-deps:
+        patterns:
+          - "pydantic"
+          - "pyyaml"
+          - "numpy"
+          - "scikit-learn"
+          - "httpx"
+          - "click"
+      llm-sdks:
+        patterns:
+          - "openai"
+          - "anthropic"
+          - "mcp"
+      proxy-stack:
+        patterns:
+          - "starlette"
+          - "uvicorn"
+
+  # GitHub Actions — monthly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      day: monday
+      time: "08:00"
+      timezone: "Europe/Lisbon"
+    labels:
+      - dependencies
+      - ci
+    reviewers:
+      - msousa202

@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write    # create GitHub Release and upload assets
+  id-token: write    # PyPI trusted publishing (OIDC) — no API token needed
+
+jobs:
+  release:
+    name: Build · Publish · Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for release notes
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies and build tools
+        run: pip install -e ".[dev]" build
+
+      - name: Run test suite
+        run: pytest tests/ -v --tb=short
+
+      - name: Build distribution
+        run: python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # Uses OIDC trusted publishing — no PYPI_API_TOKEN secret required.
+        # One-time setup: pypi.org → contextpilot-ai → Settings → Publishing
+        #   Publisher: GitHub Actions
+        #   Owner:     msousa202
+        #   Repo:      ContextPilot
+        #   Workflow:  release.yml
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: dist/*
+          fail_on_unmatched_files: false
