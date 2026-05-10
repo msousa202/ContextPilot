@@ -39,7 +39,8 @@ def _rate_for(model: str) -> float:
 
 def _bar(ratio: float, width: int = 28) -> str:
     import sys
-    use_unicode = getattr(sys.stdout, "encoding", "").lower().replace("-", "") in ("utf8", "utf16", "utf32")
+    encoding = getattr(sys.stdout, "encoding", "").lower().replace("-", "")
+    use_unicode = encoding in ("utf8", "utf16", "utf32")
     filled = round(max(0.0, min(1.0, ratio)) * width)
     if use_unicode:
         return "█" * filled + "░" * (width - filled)
@@ -119,7 +120,9 @@ def mcp() -> None:
     default=False,
     help="Show what would change without writing files (default if neither flag is given).",
 )
-@click.option("--apply", "apply_changes", is_flag=True, default=False, help="Write changes to files.")
+@click.option(
+    "--apply", "apply_changes", is_flag=True, default=False, help="Write changes to files."
+)
 @click.option("--config", "config_path", default=None, help="Path to contextpilot.yaml.")
 def migrate(path: str, dry_run: bool, apply_changes: bool, config_path: str | None) -> None:
     """Wrap existing LLM API calls with ContextPilot (Surface D, FR-011).

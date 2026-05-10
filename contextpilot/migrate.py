@@ -195,7 +195,8 @@ class MigrationAgent:
         for py_file in py_files:
             # Skip virtual environments and hidden dirs
             parts = py_file.parts
-            if any(p.startswith(".") or p in ("venv", ".venv", "env", "__pycache__", "node_modules") for p in parts):
+            skip = {"venv", ".venv", "env", "__pycache__", "node_modules"}
+            if any(p.startswith(".") or p in skip for p in parts):
                 continue
             source = py_file.read_text(encoding="utf-8", errors="replace")
             result = _transform_source(source, py_file)
@@ -213,7 +214,8 @@ class MigrationAgent:
         print()
 
         for result in results:
-            rel = result.path.relative_to(Path(path).resolve()) if Path(path).is_dir() else result.path
+            base = Path(path).resolve()
+            rel = result.path.relative_to(base) if Path(path).is_dir() else result.path
             print(f"  {rel}  ({result.call_count} call(s))")
             if dry_run and not apply:
                 diff = result.unified_diff()

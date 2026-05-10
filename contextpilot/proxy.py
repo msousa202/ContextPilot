@@ -66,7 +66,9 @@ def _system_as_str(system: object) -> str | None:
     if isinstance(system, str):
         return system
     if isinstance(system, list):
-        parts = [b.get("text", "") for b in system if isinstance(b, dict) and b.get("type") == "text"]
+        parts = [
+            b.get("text", "") for b in system if isinstance(b, dict) and b.get("type") == "text"
+        ]
         return " ".join(parts) if parts else None
     return None
 
@@ -149,7 +151,11 @@ def _make_app(pipeline: Pipeline) -> "Starlette":  # type: ignore[return]
     routes = [
         Route("/v1/chat/completions", endpoint=_openai_chat, methods=["POST"]),
         Route("/v1/messages", endpoint=_anthropic_messages, methods=["POST"]),
-        Route("/{path:path}", endpoint=_passthrough, methods=["GET", "POST", "PUT", "DELETE", "PATCH"]),
+        Route(
+            "/{path:path}",
+            endpoint=_passthrough,
+            methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+        ),
     ]
     return Starlette(routes=routes)
 

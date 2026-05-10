@@ -125,7 +125,10 @@ def optimize_context(
     ms = round(event.compression_ms, 2)
 
     if event.fallback_triggered:
-        summary = f"No compression applied — quality gate protected the original payload ({quality}/100 score, {ms} ms)"
+        summary = (
+            f"No compression applied — quality gate protected the original payload"
+            f" ({quality}/100 score, {ms} ms)"
+        )
     else:
         summary = (
             f"Compressed {orig:,} → {comp:,} tokens  ·  "
@@ -333,7 +336,8 @@ def suggest_config() -> str:
         "",
         f"  Observed usage  ({total:,} calls)",
         f"    Avg quality score  :  {avg_q:.1f} / 100",
-        f"    Fallback rate      :  {fallback_rate*100:.1f}%  ({round(fallback_rate*total)}/{total})",
+        f"    Fallback rate      :  {fallback_rate*100:.1f}%"
+        f"  ({round(fallback_rate*total)}/{total})",
         "",
         "  Suggested contextpilot.yaml:",
         "    compression:",

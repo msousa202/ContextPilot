@@ -64,7 +64,7 @@ def install(port: int = 8432, host: str = "127.0.0.1") -> None:
 
     _set_env(url)
 
-    print(f"\nContextPilot proxy installed as a startup service.")
+    print("\nContextPilot proxy installed as a startup service.")
     print(f"  Proxy URL : {url}")
     print(f"  Env var   : {_ENV_KEY}={url}  (permanent)")
     if _SYSTEM == "Windows":
@@ -333,8 +333,8 @@ def _shell_set_env(key: str, value: str) -> None:
         text = profile.read_text(encoding="utf-8")
         # Remove any previous contextpilot-managed line for this key
         cleaned = "\n".join(
-            l for l in text.splitlines()
-            if not (f"export {key}=" in l and _MARKER in l)
+            line for line in text.splitlines()
+            if not (f"export {key}=" in line and _MARKER in line)
         )
         profile.write_text(cleaned.rstrip() + f"\n{line}\n", encoding="utf-8")
 
@@ -343,8 +343,8 @@ def _shell_unset_env(key: str) -> None:
     for profile in _shell_profiles():
         text = profile.read_text(encoding="utf-8")
         cleaned = "\n".join(
-            l for l in text.splitlines()
-            if not (f"export {key}=" in l and _MARKER in l)
+            line for line in text.splitlines()
+            if not (f"export {key}=" in line and _MARKER in line)
         )
         profile.write_text(cleaned.rstrip() + "\n", encoding="utf-8")
 

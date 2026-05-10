@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import time
 
+from contextpilot._utils import word_count_messages
 from contextpilot.analyzer import Analyzer
 from contextpilot.compressor import Compressor
 from contextpilot.config import ContextPilotConfig
 from contextpilot.quality import QualityGate
 from contextpilot.telemetry import TelemetryCollector, TelemetryEvent
-from contextpilot._utils import word_count_messages
 
 
 class Pipeline:

@@ -5,8 +5,8 @@ import re
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+from contextpilot._utils import flatten_messages
 from contextpilot.config import ContextPilotConfig
-from contextpilot._utils import flatten_messages, word_count_messages
 
 
 def _tfidf_weighted_recall(orig_text: str, comp_text: str) -> float:

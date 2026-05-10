@@ -61,11 +61,3 @@ class Compressor:
     def reset(self) -> None:
         """Reset stateful strategies (e.g. between independent sessions)."""
         self._dedup.reset()
-
-    def reset(self) -> None:
-        """Reset stateful strategies (e.g. between independent sessions)."""
-        self._dedup.reset()
-
-    def reset(self) -> None:
-        """Reset stateful strategies (e.g. between independent sessions)."""
-        self._dedup.reset()
