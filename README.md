@@ -6,43 +6,43 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://img.shields.io/badge/tests-153%20passing-brightgreen.svg)](tests/)
 
-**Cut your LLM API costs 60–80% with one line of code.**
+**Cut your LLM API costs 60-80% with one line of code.**
 
-ContextPilot is a Python middleware library that compresses LLM context before each API call — transparently, with automatic quality fallback. It wraps OpenAI and Anthropic SDKs and runs across four surfaces: Python library, local proxy, MCP server, and CLI migration agent.
+ContextPilot is a Python middleware library that compresses LLM context before each API call. It wraps OpenAI and Anthropic SDKs, runs a compression pipeline, and falls back to the original payload if quality drops. Works as a Python library, a local proxy, an MCP server, or a CLI migration tool.
 
-**Website:** [contextpilot.org](https://contextpilot.org) · **PyPI:** [contextpilot-ai](https://pypi.org/project/contextpilot-ai/)
+**Website:** [contextpilot.org](https://contextpilot.org) | **PyPI:** [contextpilot-ai](https://pypi.org/project/contextpilot-ai/)
 
 ---
 
 ## How it works
 
-Every LLM API call passes through a four-stage pipeline:
+Every API call goes through four steps:
 
-1. **Analyze** — scores each message block for staleness, redundancy, relevance, and density
-2. **Compress** — summarizes history, deduplicates system prompts, prunes irrelevant RAG chunks, strips structural noise
-3. **Quality gate** — if predicted quality drops below threshold (default 72/100), the original payload is sent instead
-4. **Forward** — the optimized (or original) payload goes to the provider; response comes back unchanged
+1. **Analyze** each message block for staleness, redundancy, relevance, and density
+2. **Compress** by summarizing history, deduplicating system prompts, pruning irrelevant RAG chunks, and stripping structural noise
+3. **Quality gate** checks the predicted score. If it drops below the threshold (default 72/100), the original payload goes out instead
+4. **Forward** the optimized (or original) payload to the provider; the response comes back unchanged
 
-Zero prompt content ever leaves your environment. Telemetry is numerical metadata only.
+No prompt content ever leaves your machine. Telemetry is numerical metadata only.
 
 ---
 
 ## Benchmarks
 
-Measured on realistic production conversation patterns. Each scenario uses actual repetition patterns developers encounter (accumulated context, repeated RAG chunks, repeated error traces, multi-agent handoffs).
+Measured on realistic production conversation patterns. Each scenario uses actual repetition patterns developers encounter: accumulated context, repeated RAG chunks, repeated error traces, multi-agent handoffs.
 
 | Scenario | Tokens | Reduction | Quality | Latency |
 |----------|--------|-----------|---------|---------|
-| AI coding assistant — 25 turns, growing project context | 5,810 → 1,118 | **80.8%** | 82.8/100 | 10ms |
-| RAG chatbot — 18 turns, 5 retrieved chunks per query | 4,980 → 1,034 | **79.2%** | 83.4/100 | 9ms |
-| Multi-agent code review — 4 agents × 6 rounds | 19,619 → 4,049 | **79.4%** | 83.9/100 | 22ms |
-| Production debugging — 20 turns, repeated tracebacks | 3,814 → 928 | **75.7%** | 82.4/100 | 9ms |
-| LangChain tool agent — 15 turns, 3 tool outputs/turn | 5,368 → 1,278 | **76.2%** | 83.7/100 | 8ms |
-| Document Q&A — 16 turns, full spec prepended each query | 4,561 → 1,110 | **75.7%** | 83.9/100 | 8ms |
+| AI coding assistant, 25 turns, growing project context | 5,810 → 1,118 | **80.8%** | 82.8/100 | 10ms |
+| RAG chatbot, 18 turns, 5 retrieved chunks per query | 4,980 → 1,034 | **79.2%** | 83.4/100 | 9ms |
+| Multi-agent code review, 4 agents x 6 rounds | 19,619 → 4,049 | **79.4%** | 83.9/100 | 22ms |
+| Production debugging, 20 turns, repeated tracebacks | 3,814 → 928 | **75.7%** | 82.4/100 | 9ms |
+| LangChain tool agent, 15 turns, 3 tool outputs/turn | 5,368 → 1,278 | **76.2%** | 83.7/100 | 8ms |
+| Document Q&A, 16 turns, full spec prepended each query | 4,561 → 1,110 | **75.7%** | 83.9/100 | 8ms |
 
-**Quality gate**: compression is skipped and the original payload sent whenever quality drops below threshold (default 72/100). In all 6 scenarios above, quality held at 82–84/100 — well above the threshold.
+The quality gate skips compression whenever quality drops below threshold. In all 6 scenarios above, quality held at 82-84/100, well above the default 72.
 
-**Cost at scale** (most impactful scenario — multi-agent on Claude Opus):
+**Cost at scale** (most impactful scenario: multi-agent on Claude Opus):
 
 | Volume | Without ContextPilot | With ContextPilot | Monthly saving |
 |--------|---------------------|-------------------|----------------|
@@ -50,7 +50,7 @@ Measured on realistic production conversation patterns. Each scenario uses actua
 | 1,000 calls/day | $294/day | $61/day | **$7,006/mo** |
 | 10,000 calls/day | $2,943/day | $607/day | **$70,065/mo** |
 
-Run `python benchmarks/benchmark_readme.py` to reproduce these numbers locally.
+Run `python benchmarks/benchmark_readme.py` to reproduce locally.
 
 ---
 
@@ -59,8 +59,8 @@ Run `python benchmarks/benchmark_readme.py` to reproduce these numbers locally.
 | Surface | Entry point | Best for |
 |---------|------------|----------|
 | **Python library** | `contextpilot.wrap(client)` | Backend apps, RAG pipelines, agents |
-| **Proxy — service** | `contextpilot service install` | Claude Code, GPT Codex, Aider — always on |
-| **Proxy — manual** | `contextpilot proxy --port 8432` | Temporary sessions or per-project use |
+| **Proxy (service)** | `contextpilot service install` | Claude Code, GPT Codex, Aider — always on |
+| **Proxy (manual)** | `contextpilot proxy --port 8432` | Temporary sessions or per-project use |
 | **MCP server** | `claude mcp add contextpilot -- contextpilot mcp` | Claude Desktop, Claude Code |
 | **CLI migration** | `contextpilot migrate ./src/` | Existing codebases with 50+ LLM calls |
 
@@ -105,26 +105,26 @@ That's the full integration. No other code changes required.
 
 ---
 
-## Proxy — for Claude Code, GPT Codex, Aider
+## Proxy for Claude Code, GPT Codex, and Aider
 
 The proxy intercepts every request from your AI coding tool and compresses it before it reaches the provider.
 
 ### Recommended: install as a background service
 
-One command. Runs automatically on every login. No terminal to keep open.
+One command. Runs automatically on every login, no terminal to keep open.
 
 ```bash
 pipx install "contextpilot-ai[proxy]"
 contextpilot service install
 ```
 
-That's it. ContextPilot now:
-- Starts silently on login (Windows Task Scheduler / macOS launchd / Linux systemd)
-- Sets `ANTHROPIC_BASE_URL` permanently in your environment
-- Restarts itself automatically if it ever crashes
-- Compresses every Claude Code, GPT Codex, and Aider request with zero ongoing effort
+That's it. ContextPilot will:
+- Start silently on login (Windows Task Scheduler / macOS launchd / Linux systemd)
+- Set `ANTHROPIC_BASE_URL` permanently in your environment
+- Restart automatically if it ever crashes
+- Compress every Claude Code, GPT Codex, and Aider request with zero ongoing effort
 
-Restart VS Code (or open a new terminal) once to pick up the environment variable. From that point, every session is automatically compressed.
+Restart VS Code (or open a new terminal) once to pick up the environment variable.
 
 ```bash
 contextpilot service status     # confirm it's running
@@ -139,7 +139,7 @@ Useful for temporary use or when you only want compression for a specific projec
 # Terminal 1 — keep this open
 contextpilot proxy --port 8432
 
-# Terminal 2 — set env var, then use Claude Code normally
+# Terminal 2 — set the env var, then use your tool normally
 export ANTHROPIC_BASE_URL=http://localhost:8432      # Linux / macOS
 $env:ANTHROPIC_BASE_URL = "http://localhost:8432"    # Windows PowerShell
 
@@ -151,7 +151,7 @@ export OPENAI_BASE_URL=http://localhost:8432/v1
 
 ---
 
-## MCP Server — for Claude Desktop and Claude Code
+## MCP Server for Claude Desktop and Claude Code
 
 Register once:
 
@@ -159,17 +159,13 @@ Register once:
 claude mcp add contextpilot -- contextpilot mcp
 ```
 
-Restart Claude Code (or reload the VS Code window). ContextPilot appears as a connected MCP server. Claude will:
+Restart Claude Code (or reload the VS Code window). ContextPilot appears as a connected MCP server. Claude will call `optimize_context` when processing large contexts, include `contextpilot.wrap()` in any LLM code it generates for you, and report savings on request via the `contextpilot://savings` resource.
 
-- Call `optimize_context` when processing large contexts
-- Include `contextpilot.wrap()` in any LLM code it generates for you
-- Report savings on request via the `contextpilot://savings` resource
-
-To verify: ask Claude Code *"What MCP tools do you have available?"* — you should see `optimize_context` and `optimize_llm_code`.
+To verify: ask Claude Code "What MCP tools do you have available?" and you should see `optimize_context` and `optimize_llm_code`.
 
 ---
 
-## CLI Migration — retrofit an existing codebase
+## CLI Migration for existing codebases
 
 ```bash
 # Preview what would change
@@ -179,7 +175,7 @@ contextpilot migrate ./src/ --dry-run
 contextpilot migrate ./src/ --apply
 ```
 
-Uses AST parsing (not regex) to find every `OpenAI()` and `Anthropic()` instantiation and wrap it with `contextpilot.wrap()`. Designed for codebases with 50+ LLM calls where manual refactoring is impractical.
+Uses AST parsing (not regex) to find every `OpenAI()` and `Anthropic()` instantiation and wrap it with `contextpilot.wrap()`. Designed for codebases with 50+ LLM calls where manual refactoring isn't practical.
 
 ---
 
@@ -189,25 +185,29 @@ Uses AST parsing (not regex) to find every `OpenAI()` and `Anthropic()` instanti
 contextpilot report
 ```
 
-Reads the local event log (`~/.contextpilot/events.jsonl`) and shows token savings, compression ratio, quality scores, and estimated cost saved — no dashboard required.
+Reads the local event log (`~/.contextpilot/events.jsonl`) and shows token savings, compression ratio, quality scores, and estimated cost saved. No dashboard required.
 
 ```
   ContextPilot — Savings Report
-  ------------------------------------
-  Total calls logged   : 142
-  Fallback rate        : 8/142 (5.6%)
-  Tokens in (original) : 284,391
-  Tokens in (sent)     : 178,203
-  Tokens saved         : 106,188  (37.3% reduction)
-  Avg quality score    : 91.4/100
-  Est. cost saved      : $0.5309
+  ────────────────────────────────────────
+  Calls logged   :  142
+
+  Token reduction
+  ████████████░░░░░░░░░░░░░░░░  37.3% saved
+  284,391 → 178,203  (saved 106,188 tokens)
+
+  Quality avg    :  91.4 / 100  ✓
+  Fallback rate  :  8/142  (5.6%)
+  Est. cost saved:  ~$0.5309
+
+  Log: /home/user/.contextpilot/events.jsonl
 ```
 
 ---
 
 ## Agent Memory Middleware
 
-Compress inter-agent context handoffs in LangChain, CrewAI, and AutoGen pipelines that otherwise multiply tokens 5–30×:
+Compress inter-agent context handoffs in LangChain, CrewAI, and AutoGen pipelines that otherwise multiply tokens 5-30x:
 
 ```python
 from contextpilot.middleware import AgentMemory
@@ -250,7 +250,7 @@ Environment variable overrides: `CONTEXTPILOT_COMPRESSION_LEVEL`, `CONTEXTPILOT_
 
 ## Privacy
 
-Telemetry sends **numerical metadata only**: token counts, latency, quality scores, model IDs, timestamps. No prompt content, no response content, no PII ever leaves your environment. This is an architectural guarantee, not a policy.
+Telemetry sends numerical metadata only: token counts, latency, quality scores, model IDs, timestamps. No prompt content, no response content, no PII ever leaves your environment. This is an architectural guarantee, not a policy.
 
 See [SECURITY.md](SECURITY.md) for the full data handling policy, proxy trust model, and vulnerability reporting process.
 
@@ -271,7 +271,7 @@ pip install "contextpilot-ai[all]"             # everything
 
 ### CLI / proxy (recommended: pipx)
 
-[pipx](https://pipx.pypa.io) installs CLI tools in isolated environments and wires them into your PATH automatically — no virtualenv activation needed in new terminals:
+[pipx](https://pipx.pypa.io) installs CLI tools in isolated environments and wires them into your PATH automatically, no virtualenv activation needed in new terminals:
 
 ```bash
 pipx install "contextpilot-ai[proxy,mcp]"

@@ -37,30 +37,10 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
+from contextpilot._utils import rate_for_model
 from contextpilot.config import ContextPilotConfig
 from contextpilot.pipeline import Pipeline
 from contextpilot.telemetry import _LOCAL_LOG
-
-# $/1M-token input rates for common models
-_PRICING: dict[str, float] = {
-    "gpt-4o": 5.00,
-    "gpt-4o-mini": 0.15,
-    "gpt-4-turbo": 10.00,
-    "gpt-4": 30.00,
-    "gpt-3.5-turbo": 0.50,
-    "claude-opus": 15.00,
-    "claude-sonnet": 3.00,
-    "claude-haiku": 0.25,
-}
-_DEFAULT_RATE = 5.00
-
-
-def _rate_for(model: str) -> float:
-    m = model.lower()
-    for key, rate in _PRICING.items():
-        if key in m:
-            return rate
-    return _DEFAULT_RATE
 
 
 def _bar(ratio: float, width: int = 28) -> str:
@@ -69,8 +49,15 @@ def _bar(ratio: float, width: int = 28) -> str:
     return "█" * filled + "░" * (width - filled)
 
 
-_cfg = ContextPilotConfig.load()
-_pipeline = Pipeline(_cfg)
+_pipeline: Pipeline | None = None
+
+
+def _get_pipeline() -> Pipeline:
+    global _pipeline
+    if _pipeline is None:
+        _pipeline = Pipeline(ContextPilotConfig.load())
+    return _pipeline
+
 
 mcp = FastMCP(
     name="ContextPilot",
@@ -111,7 +98,7 @@ def optimize_context(
     Returns:
         Compressed messages, savings statistics, and quality score.
     """
-    optimized_msgs, optimized_sys, event = _pipeline.optimize(
+    optimized_msgs, optimized_sys, event = _get_pipeline().optimize(
         messages,
         system=system or None,
         provider="mcp",
@@ -237,7 +224,7 @@ def get_savings() -> str:
     saved_usd = sum(
         (e.get("tokens_input_original", 0) - e.get("tokens_input_compressed", 0))
         / 1_000_000
-        * _rate_for(e.get("model", ""))
+        * rate_for_model(e.get("model", ""))
         for e in events
     )
 
@@ -281,7 +268,7 @@ def suggest_config() -> str:
             "  Suggested contextpilot.yaml:",
             "    compression:",
             "      level: balanced",
-            "      quality_threshold: 85",
+            "      quality_threshold: 72",
             "    shadow_testing:",
             "      enabled: true",
             "      sample_rate: 0.05   # compare 5% of calls to validate savings",
@@ -345,7 +332,7 @@ def suggest_config() -> str:
         "  Suggested contextpilot.yaml:",
         "    compression:",
         f"      level: {level}",
-        "      quality_threshold: 85",
+        "      quality_threshold: 72",
     ]
     return "\n".join(lines)
 
