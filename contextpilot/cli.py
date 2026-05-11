@@ -197,6 +197,7 @@ def report(tail: int) -> None:
         return
 
     events: list[dict] = []
+    malformed_lines = 0
     with _LOCAL_LOG.open(encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -204,7 +205,10 @@ def report(tail: int) -> None:
                 try:
                     events.append(json.loads(line))
                 except json.JSONDecodeError:
-                    pass
+                    malformed_lines += 1
+
+    if malformed_lines:
+        click.echo(f"Skipped {malformed_lines} malformed event log line(s).")
 
     if not events:
         click.echo("Event log is empty.")

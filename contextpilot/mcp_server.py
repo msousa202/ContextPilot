@@ -201,6 +201,7 @@ def get_savings() -> str:
         )
 
     events: list[dict] = []
+    malformed = 0
     with _LOCAL_LOG.open(encoding="utf-8") as f:
         for line in f:
             s = line.strip()
@@ -208,7 +209,7 @@ def get_savings() -> str:
                 try:
                     events.append(json.loads(s))
                 except json.JSONDecodeError:
-                    pass
+                    malformed += 1
 
     if not events:
         return "Event log is empty — no valid entries found."
@@ -251,6 +252,8 @@ def get_savings() -> str:
         "",
         f"  Log: {_LOCAL_LOG}",
     ]
+    if malformed:
+        lines.append(f"  Ignored malformed log entries: {malformed}")
     return "\n".join(lines)
 
 
@@ -285,8 +288,14 @@ def suggest_config() -> str:
             if s:
                 try:
                     events.append(json.loads(s))
-                except json.JSONDecodeError:
-                    pass
+                except json.JSONDecodeError as exc:
+                    Pipeline.log_event(
+                        {
+                            "event": "log_parse_error",
+                            "resource": "contextpilot://config/suggest",
+                            "error": str(exc),
+                        }
+                    )
 
     if not events:
         return "Event log is empty — no valid entries found."
