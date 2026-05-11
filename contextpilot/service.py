@@ -312,7 +312,10 @@ def _windows_delete_env(key: str) -> None:
         winreg.DeleteValue(reg_key, key)  # type: ignore[attr-defined]
         winreg.CloseKey(reg_key)  # type: ignore[attr-defined]
     except (ImportError, FileNotFoundError, OSError) as exc:
-        print(f"Warning: could not delete Windows environment variable '{key}': {exc}", file=sys.stderr)
+        print(
+            f"Warning: could not delete Windows environment variable '{key}': {exc}",
+            file=sys.stderr,
+        )
 
 
 def _shell_profiles() -> list[Path]:
