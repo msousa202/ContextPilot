@@ -298,8 +298,14 @@ def suggest_config() -> str:
             if s:
                 try:
                     events.append(json.loads(s))
-                except json.JSONDecodeError:
-                    pass
+                except json.JSONDecodeError as exc:
+                    Pipeline.log_event(
+                        {
+                            "event": "log_parse_error",
+                            "resource": "contextpilot://config/suggest",
+                            "error": str(exc),
+                        }
+                    )
 
     if not events:
         return "Event log is empty — no valid entries found."
