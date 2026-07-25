@@ -7,6 +7,8 @@ def test_defaults():
     assert cfg.compression.quality_threshold == 72.0
     assert cfg.compression.history_window == 6
     assert cfg.compression.rag_relevance_min == 0.15
+    assert cfg.compression.intent_override is None
+    assert cfg.compression.intent_detection_window == 4
     assert cfg.shadow_testing.enabled is False
     assert cfg.shadow_testing.sample_rate == 0.05
     assert cfg.telemetry.enabled is True
@@ -33,6 +35,12 @@ def test_env_var_overrides(monkeypatch):
     assert cfg.compression.quality_threshold == 70.0
     assert cfg.compression.level == "conservative"
     assert cfg.telemetry.api_key == "test-key"
+
+
+def test_env_var_intent_override(monkeypatch):
+    monkeypatch.setenv("CONTEXTPILOT_INTENT", "explore")
+    cfg = ContextPilotConfig.load()
+    assert cfg.compression.intent_override == "explore"
 
 
 def test_load_no_file():

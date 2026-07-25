@@ -3,6 +3,8 @@ compression:
   quality_threshold: 72    # fallback to uncompressed if predicted score drops below this
   history_window: 6        # keep last N conversation turns verbatim
   rag_relevance_min: 0.15  # drop RAG chunks below this TF-IDF relevance score
+  intent_override: null    # debug | build | explore | refactor | unknown | null (auto-detect)
+  intent_detection_window: 4  # how many recent turns the intent heuristic examines
 
 shadow_testing:
   enabled: false

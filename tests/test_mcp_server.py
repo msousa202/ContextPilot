@@ -6,6 +6,7 @@ import json
 from unittest.mock import patch
 
 from contextpilot.mcp_server import (
+    get_last_report,
     get_savings,
     optimize_context,
     optimize_llm_code,
@@ -79,6 +80,22 @@ class TestOptimizeContext:
         msgs = [{"role": "user", "content": "Hello world"}]
         result = optimize_context(msgs)
         assert result["reduction_pct"] >= 0
+
+    def test_report_false_by_default(self):
+        msgs = [{"role": "user", "content": "Hello"}]
+        result = optimize_context(msgs)
+        assert result["report_available"] is False
+
+    def test_report_true_populates_last_report(self):
+        msgs = [{"role": "user", "content": "Hello"}]
+        result = optimize_context(msgs, report=True)
+        assert result["report_available"] is True
+        assert "No report available" not in get_last_report()
+
+    def test_report_false_clears_last_report(self):
+        optimize_context([{"role": "user", "content": "Hello"}], report=True)
+        optimize_context([{"role": "user", "content": "Hello"}], report=False)
+        assert "No report available" in get_last_report()
 
 
 # ---------------------------------------------------------------------------
@@ -217,6 +234,38 @@ class TestSuggestConfig:
         assert isinstance(result, str)
         assert len(result) > 0
 
+    def test_skips_malformed_lines_without_raising(self, tmp_path):
+        """Regression test: suggest_config() used to call a nonexistent
+        Pipeline.log_event() on malformed lines, raising AttributeError."""
+        log = tmp_path / "events.jsonl"
+        with log.open("w") as f:
+            f.write('{"quality_score": 90.0, "fallback_triggered": false}\n')
+            f.write("not valid json\n")
+            f.write('{"quality_score": 92.0, "fallback_triggered": false}\n')
+
+        with patch("contextpilot.mcp_server._LOCAL_LOG", log):
+            result = suggest_config()
+
+        assert isinstance(result, str)
+        assert "malformed" in result.lower()
+        assert "1" in result
+
+
+# ---------------------------------------------------------------------------
+# get_last_report resource
+# ---------------------------------------------------------------------------
+
+
+class TestGetLastReport:
+    def test_no_prior_call_returns_message(self):
+        optimize_context([{"role": "user", "content": "Hello"}], report=False)
+        assert "No report available" in get_last_report()
+
+    def test_after_report_call_returns_rendered_report(self):
+        optimize_context([{"role": "user", "content": "Hello"}], report=True)
+        result = get_last_report()
+        assert "Compression Report" in result
+
 
 # ---------------------------------------------------------------------------
 # MCP server object
@@ -248,3 +297,4 @@ class TestMcpServerObject:
         uris = {str(r.uri) for r in resources}
         assert "contextpilot://savings" in uris
         assert "contextpilot://config/suggest" in uris
+        assert "contextpilot://last-report" in uris

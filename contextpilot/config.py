@@ -4,7 +4,9 @@ import os
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+_ALLOWED_INTENTS = {"debug", "build", "explore", "refactor", "unknown"}
 
 
 class CompressionConfig(BaseModel):
@@ -12,6 +14,17 @@ class CompressionConfig(BaseModel):
     quality_threshold: float = 72.0  # fallback below this score (TF-IDF weighted recall metric)
     history_window: int = 6  # keep last N turns verbatim
     rag_relevance_min: float = 0.15  # drop RAG chunks below this TF-IDF score
+    intent_override: str | None = None  # debug|build|explore|refactor|unknown, None = auto-detect
+    intent_detection_window: int = 4  # how many recent turns the intent heuristic examines
+
+    @field_validator("intent_override")
+    @classmethod
+    def _validate_intent_override(cls, v: str | None) -> str | None:
+        if v is not None and v not in _ALLOWED_INTENTS:
+            raise ValueError(
+                f"intent_override must be one of {sorted(_ALLOWED_INTENTS)} or null, got {v!r}"
+            )
+        return v
 
 
 class ShadowTestingConfig(BaseModel):
@@ -52,6 +65,8 @@ class ContextPilotConfig(BaseModel):
             comp["level"] = val
         if val := os.getenv("CONTEXTPILOT_HISTORY_WINDOW"):
             comp["history_window"] = int(val)
+        if val := os.getenv("CONTEXTPILOT_INTENT"):
+            comp["intent_override"] = val
 
         tele = data.setdefault("telemetry", {})
         if val := os.getenv("CONTEXTPILOT_API_KEY"):
