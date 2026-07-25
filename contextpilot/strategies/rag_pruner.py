@@ -5,7 +5,9 @@ import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+from contextpilot.analyzer import Intent
 from contextpilot.config import ContextPilotConfig
+from contextpilot.report import BlockDecision
 
 # Delimiters that RAG pipelines commonly use to separate retrieved chunks
 _CHUNK_DELIMITERS = re.compile(
@@ -38,6 +40,9 @@ def prune_rag_chunks(
     messages: list[dict],
     query: str,
     config: ContextPilotConfig,
+    intent: Intent = Intent.UNKNOWN,
+    block_ids: list[int] | None = None,
+    decisions: list[BlockDecision] | None = None,
 ) -> list[dict]:
     """FR-003c: RAG chunk pruning.
 
@@ -45,13 +50,25 @@ def prune_rag_chunks(
     chunk against the current query using TF-IDF cosine similarity and removes
     chunks below the configured relevance threshold (default 0.15). Requires
     no embedding model — uses scikit-learn TF-IDF (technical doc §3.3).
+
+    `intent` adjusts the effective threshold: raised for `refactor`/`explore`
+    (drop more aggressively — unrelated files / general browsing), lowered
+    for `debug` (keep more retrieved context while investigating an error).
     """
-    threshold = config.compression.rag_relevance_min
+    base = config.compression.rag_relevance_min
+    if intent == Intent.REFACTOR:
+        threshold = max(base, 0.35)
+    elif intent == Intent.EXPLORE:
+        threshold = max(base, 0.25)
+    elif intent == Intent.DEBUG:
+        threshold = base * 0.5
+    else:
+        threshold = base
     if not query:
         return messages
 
     result: list[dict] = []
-    for msg in messages:
+    for i, msg in enumerate(messages):
         content = msg.get("content") or ""
         chunks = _split_chunks(content)
 
@@ -71,6 +88,23 @@ def prune_rag_chunks(
         if not kept:
             kept = chunks  # never empty a message
 
-        result.append({**msg, "content": "\n\n".join(kept)})
+        new_content = "\n\n".join(kept)
+        if decisions is not None and len(kept) < len(chunks):
+            bid = block_ids[i] if block_ids is not None else i
+            tokens_saved = len(content.split()) - len(new_content.split())
+            decisions.append(
+                BlockDecision(
+                    block_id=bid,
+                    strategy_applied="rag_pruner",
+                    action="dropped",
+                    reason=(
+                        f"{len(chunks) - len(kept)} chunk(s) below relevance "
+                        f"threshold {threshold:.2f}"
+                    ),
+                    tokens_saved=max(0, tokens_saved),
+                )
+            )
+
+        result.append({**msg, "content": new_content})
 
     return result

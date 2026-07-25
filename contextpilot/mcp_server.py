@@ -40,6 +40,7 @@ from mcp.server.fastmcp import FastMCP
 from contextpilot._utils import rate_for_model
 from contextpilot.config import ContextPilotConfig
 from contextpilot.pipeline import Pipeline
+from contextpilot.report import CompressionReport, render_report
 from contextpilot.telemetry import _LOCAL_LOG
 
 
@@ -50,6 +51,7 @@ def _bar(ratio: float, width: int = 28) -> str:
 
 
 _pipeline: Pipeline | None = None
+_last_report: CompressionReport | None = None
 
 
 def _get_pipeline() -> Pipeline:
@@ -84,6 +86,7 @@ mcp = FastMCP(
 def optimize_context(
     messages: list[dict[str, Any]],
     system: str = "",
+    report: bool = False,
 ) -> dict[str, Any]:
     """Compress a list of LLM messages to reduce token count while preserving quality.
 
@@ -94,16 +97,31 @@ def optimize_context(
     Args:
         messages: List of message dicts (OpenAI or Anthropic format).
         system:   Optional system prompt string (Anthropic-style).
+        report:   If true, also populate the contextpilot://last-report resource
+                  with a structured breakdown of this call's compression decisions.
 
     Returns:
         Compressed messages, savings statistics, and quality score.
     """
-    optimized_msgs, optimized_sys, event = _get_pipeline().optimize(
-        messages,
-        system=system or None,
-        provider="mcp",
-        model="unknown",
-    )
+    global _last_report
+
+    if report:
+        optimized_msgs, optimized_sys, event, rpt = _get_pipeline().optimize(
+            messages,
+            system=system or None,
+            provider="mcp",
+            model="unknown",
+            report=True,
+        )
+        _last_report = rpt
+    else:
+        optimized_msgs, optimized_sys, event = _get_pipeline().optimize(
+            messages,
+            system=system or None,
+            provider="mcp",
+            model="unknown",
+        )
+        _last_report = None
 
     orig = event.tokens_input_original
     comp = event.tokens_input_compressed
@@ -136,6 +154,7 @@ def optimize_context(
         "fallback_triggered": event.fallback_triggered,
         "compression_ms": ms,
         "summary": summary,
+        "report_available": report,
     }
 
 
@@ -257,6 +276,14 @@ def get_savings() -> str:
     return "\n".join(lines)
 
 
+@mcp.resource("contextpilot://last-report")
+def get_last_report() -> str:
+    """Human-readable CompressionReport from the most recent optimize_context(report=True) call."""
+    if _last_report is None:
+        return "No report available yet — call optimize_context with report=True first."
+    return render_report(_last_report)
+
+
 @mcp.resource("contextpilot://config/suggest")
 def suggest_config() -> str:
     """Suggest optimal ContextPilot configuration based on recorded usage patterns."""
@@ -282,20 +309,15 @@ def suggest_config() -> str:
         return "\n".join(lines)
 
     events: list[dict] = []
+    malformed = 0
     with _LOCAL_LOG.open(encoding="utf-8") as f:
         for line in f:
             s = line.strip()
             if s:
                 try:
                     events.append(json.loads(s))
-                except json.JSONDecodeError as exc:
-                    Pipeline.log_event(
-                        {
-                            "event": "log_parse_error",
-                            "resource": "contextpilot://config/suggest",
-                            "error": str(exc),
-                        }
-                    )
+                except json.JSONDecodeError:
+                    malformed += 1
 
     if not events:
         return "Event log is empty — no valid entries found."
@@ -343,6 +365,8 @@ def suggest_config() -> str:
         f"      level: {level}",
         "      quality_threshold: 72",
     ]
+    if malformed:
+        lines.append(f"  Ignored malformed log entries: {malformed}")
     return "\n".join(lines)
 
 

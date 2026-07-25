@@ -6,6 +6,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [0.3.0] — 2026-07-25
+
+### Added
+- **Intent detection** (#10): `analyzer.py` classifies each conversation as `debug` / `build` / `explore` / `refactor` / `unknown` using a cheap deterministic regex/keyword heuristic (no LLM call). Each compression strategy adjusts its aggressiveness accordingly — e.g. `debug` widens the retained history window and never truncates the system prompt; `explore` narrows it. Configurable via `compression.intent_override` / `CONTEXTPILOT_INTENT` to force a mode manually.
+- **CompressionReport** (#14): `contextpilot.compress(messages, report=True)` returns a structured `CompressionReport` describing what each strategy did per block (kept/summarized/dropped, reason, tokens saved). Exposed via the new `contextpilot compress --report` CLI command, and the `optimize_context(report=True)` MCP tool + `contextpilot://last-report` resource. Report content is never sent to telemetry.
+- **`contextpilot compress`**: new one-shot CLI command to compress a single messages payload from a file or stdin (`--report` for the breakdown, `--json` for machine-readable output).
+
+### Fixed
+- `mcp_server.py`'s `suggest_config()` called a nonexistent `Pipeline.log_event()` on malformed log lines, which would raise `AttributeError` at runtime and was failing CI's mypy check. Now counts and reports malformed lines the same way `get_savings()` already does.
+
+### Notes
+- Issue #11 (AST-based code block skeletonization) was closed as won't-do — it's a fundamental mismatch with `structural.py`'s pure-regex, <10ms design and would need its own design project rather than an extension of the existing strategy.
+
+---
+
 ## [0.2.0] — 2026-05-09
 
 ### Added

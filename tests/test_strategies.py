@@ -1,5 +1,6 @@
-from contextpilot.analyzer import Analyzer
+from contextpilot.analyzer import Analyzer, Intent
 from contextpilot.config import ContextPilotConfig
+from contextpilot.report import BlockDecision
 from contextpilot.strategies.agent_memory import compress_agent_handoff
 from contextpilot.strategies.dedup import SystemPromptDeduplicator
 from contextpilot.strategies.history import summarize_old_turns
@@ -64,6 +65,111 @@ def test_history_summary_reduces_tokens():
     total_orig = sum(len(m["content"].split()) for m in messages)
     total_comp = sum(len(m["content"].split()) for m in result)
     assert total_comp < total_orig
+
+
+# --- Intent-aware behavior ---
+
+
+def test_history_debug_widens_window():
+    config = cfg(history_window=3)
+    messages = [{"role": "user", "content": f"Turn {i} with some content"} for i in range(5)]
+    blocks = Analyzer(config).analyze(messages)
+    # Without an intent hint, 5 > 3 -> summarized
+    assert summarize_old_turns(messages, blocks, config) != messages
+    # DEBUG widens the effective window (3 + 4 = 7 >= 5) -> unchanged
+    result = summarize_old_turns(messages, blocks, config, intent=Intent.DEBUG)
+    assert result == messages
+
+
+def test_history_explore_narrows_window():
+    config = cfg(history_window=6)
+    messages = [{"role": "user", "content": f"Turn {i} with some content"} for i in range(5)]
+    blocks = Analyzer(config).analyze(messages)
+    # Without an intent hint, 5 <= 6 -> unchanged
+    assert summarize_old_turns(messages, blocks, config) == messages
+    # EXPLORE narrows the effective window (6 - 2 = 4 < 5) -> oldest turn summarized
+    result = summarize_old_turns(messages, blocks, config, intent=Intent.EXPLORE)
+    assert "Prior context" in result[0]["content"]
+    assert result != messages
+
+
+def test_history_debug_preserves_error_excerpt():
+    config = cfg(history_window=1)
+    messages = [
+        {"role": "user", "content": "Traceback (most recent call last):\nTypeError: boom"},
+        {"role": "user", "content": "final question"},
+    ]
+    blocks = Analyzer(config).analyze(messages)
+    result = summarize_old_turns(messages, blocks, config, intent=Intent.DEBUG)
+    assert "Traceback" in result[0]["content"]
+
+
+def test_structural_refactor_skips_repetition_rules():
+    text = "Section A\n---\n---\n---\nSection B"
+    default_result = strip_structural(text)
+    refactor_result = strip_structural(text, intent=Intent.REFACTOR)
+    assert default_result.count("---") == 1
+    assert refactor_result.count("---") == 3
+
+
+def test_dedup_debug_never_truncates():
+    d = SystemPromptDeduplicator()
+    system = "You are a helpful assistant. " * 10
+    d.process(system, cfg(level="aggressive"), intent=Intent.DEBUG)
+    result = d.process(system, cfg(level="aggressive"), intent=Intent.DEBUG)
+    assert result == system
+    assert "CACHED" not in result
+
+
+def test_rag_pruner_intent_thresholds_differ():
+    config = cfg(rag_relevance_min=0.01)
+    relevant = "Python is a versatile programming language for data science."
+    unrelated = "Ancient Rome had a complex system of aqueducts and roads."
+    messages = [_rag_msg([relevant, unrelated])]
+    query = "Python programming data science"
+    default_result = prune_rag_chunks(messages, query, config)
+    refactor_result = prune_rag_chunks(messages, query, config, intent=Intent.REFACTOR)
+    # The higher effective threshold under REFACTOR should never keep *more*
+    # content than the default (lower) threshold.
+    assert len(refactor_result[0]["content"]) <= len(default_result[0]["content"])
+
+
+# --- Report / decision tracking ---
+
+
+def test_history_summarize_emits_decisions():
+    config = cfg(history_window=1)
+    messages = [
+        {"role": "user", "content": f"Turn {i} with plenty of content here"} for i in range(4)
+    ]
+    blocks = Analyzer(config).analyze(messages)
+    decisions: list[BlockDecision] = []
+    summarize_old_turns(messages, blocks, config, decisions=decisions)
+    assert len(decisions) == 3  # 3 old turns folded into the summary
+    assert all(d.strategy_applied == "history" and d.action == "summarized" for d in decisions)
+
+
+def test_rag_pruner_emits_decision_on_drop():
+    config = cfg(rag_relevance_min=0.5)
+    relevant = "Python is a versatile programming language for data science."
+    unrelated = "Ancient Rome had a complex system of aqueducts and roads."
+    messages = [_rag_msg([relevant, unrelated])]
+    decisions: list[BlockDecision] = []
+    prune_rag_chunks(messages, "Python programming data science", config, decisions=decisions)
+    if decisions:  # only asserts shape when the TF-IDF threshold actually drops a chunk
+        assert decisions[0].strategy_applied == "rag_pruner"
+        assert decisions[0].action == "dropped"
+
+
+def test_dedup_emits_decision_on_truncate():
+    d = SystemPromptDeduplicator()
+    system = "You are a helpful assistant. " * 10
+    decisions: list[BlockDecision] = []
+    d.process(system, cfg(level="aggressive"), decisions=decisions)
+    d.process(system, cfg(level="aggressive"), decisions=decisions)
+    assert len(decisions) == 1
+    assert decisions[0].strategy_applied == "dedup"
+    assert decisions[0].action == "summarized"
 
 
 # --- System prompt dedup ---

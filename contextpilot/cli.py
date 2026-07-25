@@ -5,7 +5,8 @@ Commands
 contextpilot proxy    — Surface B: local proxy server (FR-009)
 contextpilot mcp      — Surface C: MCP server for Claude Desktop / Claude Code (FR-010)
 contextpilot migrate  — Surface D: AST-based migration agent (FR-011)
-contextpilot report   — Show local token savings summary
+contextpilot report   — Show local aggregate token savings summary (historical, from events.jsonl)
+contextpilot compress — Compress a single messages payload once (FR-014, per-call report)
 """
 
 from __future__ import annotations
@@ -191,7 +192,10 @@ def service_status() -> None:
 @main.command()
 @click.option("--tail", default=0, help="Show only the last N events (0 = all).")
 def report(tail: int) -> None:
-    """Show token savings from the local event log (~/.contextpilot/events.jsonl)."""
+    """Show AGGREGATE token savings from the local event log (~/.contextpilot/events.jsonl).
+
+    For a single call's compression breakdown, use `contextpilot compress --report` instead.
+    """
     if not _LOCAL_LOG.exists():
         click.echo("No events recorded yet. Run a few API calls through ContextPilot first.")
         return
@@ -252,3 +256,62 @@ def report(tail: int) -> None:
     click.echo()
     click.echo(f"  Log: {_LOCAL_LOG}")
     click.echo()
+
+
+# ---------------------------------------------------------------------------
+# Compress: one-shot single-call compression (FR-014)
+# ---------------------------------------------------------------------------
+
+
+@main.command("compress")
+@click.option(
+    "--input",
+    "input_path",
+    type=click.Path(exists=True),
+    default=None,
+    help='JSON file: {"messages": [...], "system": "..."}. Reads stdin if omitted.',
+)
+@click.option(
+    "--report",
+    "show_report",
+    is_flag=True,
+    default=False,
+    help="Print a per-call compression report (distinct from `contextpilot report`, "
+    "which shows aggregate historical savings).",
+)
+@click.option("--config", "config_path", default=None, help="Path to contextpilot.yaml.")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Print machine-readable JSON.")
+def compress_command(
+    input_path: str | None, show_report: bool, config_path: str | None, as_json: bool
+) -> None:
+    """Compress a single messages payload once and print the result.
+
+    \b
+      echo '{"messages": [{"role": "user", "content": "..."}]}' | contextpilot compress --report
+    """
+    import sys
+
+    from contextpilot.api import compress as compress_fn
+    from contextpilot.config import ContextPilotConfig
+    from contextpilot.report import render_report
+
+    raw = open(input_path, encoding="utf-8").read() if input_path else sys.stdin.read()
+    data = json.loads(raw)
+    cfg = ContextPilotConfig.load(config_path)
+    result = compress_fn(
+        data.get("messages", []), system=data.get("system"), config=cfg, report=show_report
+    )
+
+    if as_json:
+        out = dict(result.payload)
+        if result.report:
+            out["report"] = result.report.to_dict()
+        click.echo(json.dumps(out))
+        return
+
+    orig = sum(len((m.get("content") or "").split()) for m in data.get("messages", []))
+    comp = sum(len((m.get("content") or "").split()) for m in result.payload["messages"])
+    click.echo(f"{orig:,} -> {comp:,} tokens")
+    if show_report and result.report:
+        click.echo()
+        click.echo(render_report(result.report))

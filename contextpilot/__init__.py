@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from contextpilot.api import CompressionResult, compress
 from contextpilot.config import ContextPilotConfig
 from contextpilot.pipeline import Pipeline
+from contextpilot.report import BlockDecision, CompressionReport
 
 
 def wrap(client: Any, config: ContextPilotConfig | dict | None = None) -> Any:
@@ -42,4 +44,11 @@ def wrap(client: Any, config: ContextPilotConfig | dict | None = None) -> Any:
     )
 
 
-__all__ = ["wrap", "ContextPilotConfig"]
+__all__ = [
+    "wrap",
+    "ContextPilotConfig",
+    "compress",
+    "CompressionResult",
+    "CompressionReport",
+    "BlockDecision",
+]
