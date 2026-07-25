@@ -192,7 +192,7 @@ class TestTransformSource:
         """When there are no existing imports, add import contextpilot at top."""
         # Remove all imports manually to simulate no imports
         r = _transform_source("client = OpenAI()\n", Path("t.py"))
-        # No imports at all — contextpilot import should be prepended
+        # No imports at all, contextpilot import should be prepended
         assert r.rewritten.startswith("import contextpilot")
 
 

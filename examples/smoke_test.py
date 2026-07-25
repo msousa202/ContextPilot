@@ -1,4 +1,4 @@
-"""ContextPilot smoke test — validates the real compression pipeline end-to-end.
+"""ContextPilot smoke test: validates the real compression pipeline end-to-end.
 
 Runs WITHOUT making real API calls (no key needed). Tests the full
 pipeline: analyzer → compressor → quality gate → telemetry log.
@@ -71,7 +71,7 @@ def test_pipeline_directly() -> None:
 
 
 def test_wrap_api() -> None:
-    _separator("2. contextpilot.wrap() — OpenAI path (mock client)")
+    _separator("2. contextpilot.wrap(), OpenAI path (mock client)")
 
     class _FakeCompletions:
         def create(self, *, model, messages, **kwargs):
@@ -105,7 +105,7 @@ def test_local_telemetry_written() -> None:
 
     if not _LOCAL_LOG.exists():
         print(f"  Log not found at {_LOCAL_LOG}")
-        print("  (Run a real call to populate it — this is expected on first run)")
+        print("  (Run a real call to populate it, this is expected on first run)")
         return
 
     events = []
@@ -126,7 +126,7 @@ def test_local_telemetry_written() -> None:
 
 
 def test_migrate_dry_run(tmp_path: Path | None = None) -> None:
-    _separator("4. Migration agent — dry run")
+    _separator("4. Migration agent, dry run")
     import tempfile, os
 
     src = """\

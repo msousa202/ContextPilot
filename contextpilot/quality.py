@@ -10,20 +10,20 @@ from contextpilot.config import ContextPilotConfig
 
 
 def _tfidf_weighted_recall(orig_text: str, comp_text: str) -> float:
-    """Compute TF-IDF weighted recall — the fraction of information weight preserved.
+    """Compute TF-IDF weighted recall: the fraction of information weight preserved.
 
     Each unique term in the original is weighted by its TF-IDF score (rarity ×
     frequency). Quality = sum of weights for terms that survive in the compressed
     version / total weight of all original terms.
 
     Why this is better than cosine similarity for compression quality:
-    - Cosine is bounded by √retention — any significant compression (say 50%
+    - Cosine is bounded by √retention: any significant compression (say 50%
       tokens dropped) produces cosine ≤ 0.71 regardless of what was dropped.
     - Weighted recall is bounded by 1.0 regardless of retention, so it correctly
       distinguishes "dropped redundant content" (high score) from "dropped unique
       content" (low score).
     - Our keyword extraction specifically selects the highest-IDF terms, so
-      they contribute the most weight — and this metric directly rewards that.
+      they contribute the most weight, and this metric directly rewards that.
     """
     if not orig_text.strip():
         return 1.0
@@ -52,7 +52,7 @@ class QualityGate:
     """FR-004: Quality preservation scoring.
 
     Computes a predicted quality preservation score (0–100) using TF-IDF
-    weighted recall — the fraction of information weight (rare terms matter
+    weighted recall: the fraction of information weight (rare terms matter
     more than common ones) preserved in the compressed context.
 
     Metric: weighted_recall × 0.80 + retention × 0.20

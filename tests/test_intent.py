@@ -62,7 +62,7 @@ def test_detect_intent_respects_window():
         "Also update the settings page copy.",
     )
     messages = [debug_turn] + neutral_turns
-    # window=2 examines only the neutral tail — the debug signal is out of range
+    # window=2 examines only the neutral tail, the debug signal is out of range
     assert detect_intent(messages, window=2) != Intent.DEBUG
 
 

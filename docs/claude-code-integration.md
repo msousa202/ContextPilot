@@ -1,8 +1,8 @@
-# ContextPilot + Claude Code — Integration Guide
+# ContextPilot + Claude Code: Integration Guide
 
 ## What is ContextPilot?
 
-ContextPilot sits between your code and Anthropic's API. Before every request reaches Claude, it analyzes the message payload and removes redundant, stale, or irrelevant content — then sends a leaner version. If compression would hurt quality, it silently falls back to the original. You always get the same quality response, at a lower token cost.
+ContextPilot sits between your code and Anthropic's API. Before every request reaches Claude, it analyzes the message payload and removes redundant, stale, or irrelevant content, then sends a leaner version. If compression would hurt quality, it silently falls back to the original. You always get the same quality response, at a lower token cost.
 
 ```
 Your code / Claude Code
@@ -17,7 +17,7 @@ Your code / Claude Code
   Response (unchanged)  ← comes back to you exactly as normal
 ```
 
-No content ever leaves your machine except what goes to Anthropic — and that payload is smaller than before.
+No content ever leaves your machine except what goes to Anthropic, and that payload is smaller than before.
 
 ---
 
@@ -27,18 +27,20 @@ Every message payload passes through four stages:
 
 | Stage | What it does | Example saving |
 |-------|-------------|----------------|
-| **History summarization** | Keeps the last 6 turns verbatim, collapses older turns into a compact summary | 40–60% on long conversations |
-| **System prompt dedup** | Detects unchanged system prompts sent repeatedly across calls | 10–30% on multi-turn apps |
-| **RAG chunk pruning** | Scores each retrieved document chunk against the current query, removes low-relevance ones | 20–50% on RAG pipelines |
-| **Structural stripping** | Removes excessive blank lines, repeated markdown headers, empty XML tags | 5–15% on structured prompts |
+| **History summarization** | Keeps the last 6 turns verbatim, collapses older turns into a compact summary | 40-60% on long conversations |
+| **System prompt dedup** | Detects unchanged system prompts sent repeatedly across calls | 10-30% on multi-turn apps |
+| **RAG chunk pruning** | Scores each retrieved document chunk against the current query, removes low-relevance ones | 20-50% on RAG pipelines |
+| **Structural stripping** | Removes excessive blank lines, repeated markdown headers, empty XML tags | 5-15% on structured prompts |
 
-After compression, a **quality gate** predicts the preservation score (0–100). If it falls below 85, the original payload is sent instead. You never get a degraded response — only smaller or identical.
+After compression, a **quality gate** predicts the preservation score (0-100). If it falls below 72 (the shipped default; see the README for how to change it), the original payload is sent instead. You never get a degraded response, only smaller or identical.
 
 ---
 
 ## Two ways to use it with Claude Code
 
-### Mode 1 — Proxy (transparent, automatic)
+Claude Code already does its own session-level context management (auto-compaction, prompt caching). ContextPilot works underneath that, at the level of a single API call's payload, so the two are complementary rather than overlapping.
+
+### Mode 1 - Proxy (transparent, automatic)
 
 Every message you or Claude Code sends is compressed before hitting Anthropic. You change nothing about your workflow.
 
@@ -52,20 +54,20 @@ Claude Code (VS Code or terminal)
   Anthropic API
 ```
 
-**Best for:** cutting your actual API bill. Every prompt — code generation, explanation, refactor — goes through compression without any extra steps.
+**Best for:** cutting your actual API bill. Every prompt (code generation, explanation, refactor) goes through compression without any extra steps.
 
 The proxy has two setup options:
 
 | Option | How | Persistent? |
 |--------|-----|-------------|
-| **Service** (recommended) | `contextpilot service install` | Yes — starts on every login automatically |
-| **Manual** | `contextpilot proxy --port 8432` | Session only — terminal must stay open |
+| **Service** (recommended) | `contextpilot service install` | Yes, starts on every login automatically |
+| **Manual** | `contextpilot proxy --port 8432` | Session only, terminal must stay open |
 
 ---
 
-### Mode 2 — MCP Server (tool-based, opt-in)
+### Mode 2 - MCP Server (tool-based, opt-in)
 
-ContextPilot runs as an MCP server. Claude sees it as a set of tools it can call. Claude decides when to use them — it does not intercept automatically.
+ContextPilot runs as an MCP server. Claude sees it as a set of tools it can call. Claude decides when to use them; it does not intercept automatically.
 
 ```
 Claude Code session
@@ -75,13 +77,13 @@ Claude Code session
         └─ reads contextpilot://savings ──► returns your savings summary
 ```
 
-**Best for:** AI-native distribution — when Claude generates LLM code for you or others, it includes `contextpilot.wrap()` automatically because the `optimize_llm_code` tool is available.
+**Best for:** AI-native distribution. When Claude generates LLM code for you or others, it includes `contextpilot.wrap()` automatically because the `optimize_llm_code` tool is available.
 
 ---
 
-## Setup — Claude Code in VS Code (extension)
+## Setup - Claude Code in VS Code (extension)
 
-### Proxy — service install (recommended)
+### Proxy - service install (recommended)
 
 Run once. The proxy starts automatically on every login from this point on.
 
@@ -93,7 +95,7 @@ pipx install "contextpilot-ai[proxy]"
 contextpilot service install
 ```
 
-Restart VS Code once to pick up the new `ANTHROPIC_BASE_URL` environment variable. After that, every Claude Code session in VS Code automatically routes through ContextPilot — no terminal to keep open, no command to remember.
+Restart VS Code once to pick up the new `ANTHROPIC_BASE_URL` environment variable. After that, every Claude Code session in VS Code automatically routes through ContextPilot, no terminal to keep open, no command to remember.
 
 To confirm it's running:
 
@@ -109,7 +111,7 @@ contextpilot service uninstall
 
 ---
 
-### Proxy — manual (per session)
+### Proxy - manual (per session)
 
 Use this if you only want compression for a specific session, or if you prefer not to install a startup service.
 
@@ -152,20 +154,20 @@ You should see `optimize_context` and `optimize_llm_code` in the list.
 
 ---
 
-## Setup — Claude Code on Console / CMD
+## Setup - Claude Code on Console / CMD
 
-### Proxy — service install (recommended)
+### Proxy - service install (recommended)
 
 ```powershell
 pipx install "contextpilot-ai[proxy]"
 contextpilot service install
 ```
 
-Open a new terminal. `ANTHROPIC_BASE_URL` is now set permanently. Just run `claude` — every session is automatically compressed.
+Open a new terminal. `ANTHROPIC_BASE_URL` is now set permanently. Just run `claude`, every session is automatically compressed.
 
 ---
 
-### Proxy — manual (per session)
+### Proxy - manual (per session)
 
 Open a first terminal and start the proxy:
 
@@ -219,7 +221,7 @@ The tools are available immediately. You can ask Claude to call them explicitly:
 
 ## Use cases
 
-### 1. Daily Claude Code usage (service — set and forget)
+### 1. Daily Claude Code usage (service, set and forget)
 
 Install once. Every session for the rest of time is compressed automatically.
 
@@ -227,19 +229,19 @@ Install once. Every session for the rest of time is compressed automatically.
 pipx install "contextpilot-ai[proxy]"
 contextpilot service install
 # restart VS Code once
-# done — nothing else to do, ever
+# done, nothing else to do
 ```
 
-Long sessions naturally accumulate context — previous file contents, error messages, explanations — that gets re-sent with every message. With the service running, older turns are summarized and repeated content is deduplicated transparently on every request.
+Long sessions naturally accumulate context: previous file contents, error messages, explanations, that gets re-sent with every message. With the service running, older turns are summarized and repeated content is deduplicated transparently on every request.
 
 ---
 
 ### 2. Building a RAG chatbot (library)
 
-You're building a customer support bot. Each user message retrieves 5–10 document chunks from a vector database and sends them all to Claude. Most chunks aren't relevant to the specific question.
+You're building a customer support bot. Each user message retrieves 5-10 document chunks from a vector database and sends them all to Claude. Most chunks aren't relevant to the specific question.
 
 **Without ContextPilot:** all 10 chunks sent every time.
-**With ContextPilot:** chunks scored for relevance, only the top 2–3 sent.
+**With ContextPilot:** chunks scored for relevance, only the top 2-3 sent.
 
 ```python
 import contextpilot
@@ -290,7 +292,7 @@ contextpilot migrate ./src/ --dry-run
 contextpilot migrate ./src/ --apply
 ```
 
-Uses AST parsing — it finds `OpenAI()` and `Anthropic()` instantiations and wraps them with `contextpilot.wrap()`. Safe on production code.
+Uses AST parsing: it finds `OpenAI()` and `Anthropic()` instantiations and wraps them with `contextpilot.wrap()`. Safe on production code.
 
 ---
 
@@ -303,7 +305,7 @@ contextpilot report
 ```
 
 ```
-  ContextPilot — Savings Report
+  ContextPilot · Savings Report
   ------------------------------------
   Total calls logged   : 142
   Fallback rate        : 8/142 (5.6%)
@@ -321,9 +323,9 @@ contextpilot report
 | Content type | Compressed? | Why |
 |-------------|-------------|-----|
 | Repeated questions/answers in history | Yes | Redundancy detection |
-| Old conversation turns (beyond window) | Yes — summarized | History strategy |
-| Unchanged system prompts (multi-call) | Yes — deduplicated | Dedup strategy |
-| Low-relevance RAG chunks | Yes — pruned | RAG pruner |
+| Old conversation turns (beyond window) | Yes, summarized | History strategy |
+| Unchanged system prompts (multi-call) | Yes, deduplicated | Dedup strategy |
+| Low-relevance RAG chunks | Yes, pruned | RAG pruner |
 | Excess whitespace, empty tags | Yes | Structural stripping |
 | Recent 6 turns | No | Kept verbatim for context |
 | The current user message | Never | Always sent unchanged |
@@ -355,6 +357,6 @@ No `content`, `text`, `prompt`, or `response` fields exist in the schema. You ca
 cat ~/.contextpilot/events.jsonl
 ```
 
-Remote telemetry (to `api.contextpilot.org`) only fires if you explicitly set `CONTEXTPILOT_API_KEY`. Without it, all data stays local.
+Remote telemetry (to `api.contextpilot.org`) only fires if you explicitly set `CONTEXTPILOT_API_KEY`, and as of this writing that endpoint isn't live yet, so there's nothing for it to reach even then. Without a key, all data stays local, permanently.
 
-For the full security model, see [SECURITY.md](../SECURITY.md).
+For the full security model, see [SECURITY.md](../SECURITY.md). For an honest look at what this tool doesn't do yet, see [limitations.md](limitations.md).

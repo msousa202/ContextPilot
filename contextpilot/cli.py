@@ -1,12 +1,12 @@
-"""ContextPilot CLI — entry point for all four surfaces.
+"""ContextPilot CLI: entry point for all four surfaces.
 
 Commands
 --------
-contextpilot proxy    — Surface B: local proxy server (FR-009)
-contextpilot mcp      — Surface C: MCP server for Claude Desktop / Claude Code (FR-010)
-contextpilot migrate  — Surface D: AST-based migration agent (FR-011)
-contextpilot report   — Show local aggregate token savings summary (historical, from events.jsonl)
-contextpilot compress — Compress a single messages payload once (FR-014, per-call report)
+contextpilot proxy    - Surface B: local proxy server (FR-009)
+contextpilot mcp      - Surface C: MCP server for Claude Desktop / Claude Code (FR-010)
+contextpilot migrate  - Surface D: AST-based migration agent (FR-011)
+contextpilot report   - Show local aggregate token savings summary (historical, from events.jsonl)
+contextpilot compress - Compress a single messages payload once (FR-014, per-call report)
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ def _bar(ratio: float, width: int = 28) -> str:
 @click.group()
 @click.version_option(package_name="contextpilot-ai")
 def main() -> None:
-    """ContextPilot — Intelligent LLM context optimization middleware."""
+    """ContextPilot: intelligent LLM context optimization middleware."""
 
 
 # ---------------------------------------------------------------------------
@@ -72,10 +72,10 @@ def mcp() -> None:
     """Start the MCP server for Claude Desktop and Claude Code (Surface C, FR-010).
 
     \b
-    Runs in stdio mode — connect once, every LLM code Claude generates
+    Runs in stdio mode. Connect once, every LLM code Claude generates
     will include contextpilot.wrap() automatically.
 
-    Claude Desktop — add to claude_desktop_config.json:
+    Claude Desktop: add to claude_desktop_config.json:
     \b
       {
         "mcpServers": {
@@ -141,7 +141,7 @@ def service() -> None:
     """Manage the ContextPilot proxy as a background startup service.
 
     \b
-    Installs the proxy so it starts automatically on login — no terminal
+    Installs the proxy so it starts automatically on login, no terminal
     required. Also sets ANTHROPIC_BASE_URL permanently so Claude Code,
     GPT Codex, and Aider route through it automatically.
 
@@ -242,7 +242,7 @@ def report(tail: int) -> None:
     quality_indicator = "✓" if avg_quality >= 85 else "⚠"
 
     click.echo()
-    click.echo("  ContextPilot — Savings Report")
+    click.echo("  ContextPilot · Savings Report")
     click.echo("  " + "─" * 40)
     click.echo(f"  Calls logged   :  {total:,}")
     click.echo()

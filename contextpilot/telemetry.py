@@ -19,7 +19,7 @@ _LOCAL_LOG = _LOCAL_DIR / "events.jsonl"
 class TelemetryEvent:
     """FR-006: Metadata-only telemetry event.
 
-    Contains ONLY numerical metadata — never prompt/response content or PII.
+    Contains ONLY numerical metadata, never prompt/response content or PII.
     Schema matches technical doc §7.
     """
 
@@ -63,7 +63,7 @@ class TelemetryCollector:
     """FR-006: Non-blocking metadata collection and transport.
 
     Buffers events locally and flushes to the dashboard API endpoint in
-    batches. If the endpoint is unreachable, events are silently dropped —
+    batches. If the endpoint is unreachable, events are silently dropped;
     telemetry failures must never affect library operation.
     """
 
@@ -86,7 +86,7 @@ class TelemetryCollector:
             with _LOCAL_LOG.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(event.to_dict()) + "\n")
         except Exception:
-            pass  # silent drop — never affect library operation
+            pass  # silent drop, never affect library operation
 
     def _flush(self) -> None:
         if not self._buffer or not self.config.telemetry.api_key:
@@ -102,7 +102,7 @@ class TelemetryCollector:
                     headers={"Authorization": f"Bearer {self.config.telemetry.api_key}"},
                 )
         except Exception:
-            pass  # silent drop — library keeps working
+            pass  # silent drop, library keeps working
 
     def drain(self) -> list[TelemetryEvent]:
         """Return and clear the buffer (for testing)."""

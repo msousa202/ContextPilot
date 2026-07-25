@@ -1,5 +1,5 @@
 """
-Extensive benchmark suite for README — 8 realistic production scenarios.
+Extensive benchmark suite for README: 8 realistic production scenarios.
 
 Each scenario simulates actual developer usage patterns with realistic
 message sizes, repetition patterns, and conversation lengths.
@@ -48,13 +48,13 @@ def bench(msgs, system=None, level="balanced", model="gpt-4o", label=""):
 
 
 # ============================================================
-# SCENARIO 1  —  Claude Code / AI coding assistant
+# SCENARIO 1: Claude Code / AI coding assistant
 # Realistic: developer builds a full-stack app over many turns.
 # Each turn re-sends the growing project description + last output.
 # ============================================================
 print()
 print("=" * 70)
-print("SCENARIO 1  —  AI Coding Assistant (25 turns, growing file context)")
+print("SCENARIO 1: AI Coding Assistant (25 turns, growing file context)")
 print("=" * 70)
 
 project = (
@@ -127,13 +127,13 @@ bench(msgs_s1, model="claude-sonnet", label="claude-sonnet")
 
 
 # ============================================================
-# SCENARIO 2  —  RAG Chatbot with heavy retrieval context
+# SCENARIO 2: RAG Chatbot with heavy retrieval context
 # Realistic: knowledge-base chatbot that retrieves 5 chunks per query.
 # Same knowledge base chunks get retrieved repeatedly across turns.
 # ============================================================
 print()
 print("=" * 70)
-print("SCENARIO 2  —  RAG Knowledge-Base Chatbot (18 turns, 5 chunks/query)")
+print("SCENARIO 2: RAG Knowledge-Base Chatbot (18 turns, 5 chunks/query)")
 print("=" * 70)
 
 # Simulated knowledge base chunks (mix of relevant and irrelevant per query)
@@ -160,7 +160,7 @@ kb_install = (
     "For proxy surface: pip install contextpilot-ai[proxy]. "
     "For MCP surface: pip install contextpilot-ai[mcp]. "
     "Usage: import contextpilot; client = contextpilot.wrap(OpenAI()). "
-    "That is the complete integration — no other code changes required. "
+    "That is the complete integration, no other code changes required. "
 )
 kb_integration = (
     "ContextPilot integrates with LangChain via the contextpilot.middleware.AgentMemory class. "
@@ -205,13 +205,13 @@ bench(msgs_s2, model="gpt-4o",      label="gpt-4o")
 
 
 # ============================================================
-# SCENARIO 3  —  Production customer support bot
+# SCENARIO 3: Production customer support bot
 # Realistic: massive system prompt + product docs on every call.
-# Very common deployment — system prompt is 500+ words.
+# Very common deployment, system prompt is 500+ words.
 # ============================================================
 print()
 print("=" * 70)
-print("SCENARIO 3  —  Production Support Bot (500-word system prompt, 20 turns)")
+print("SCENARIO 3: Production Support Bot (500-word system prompt, 20 turns)")
 print("=" * 70)
 
 sys_support = (
@@ -231,7 +231,7 @@ sys_support = (
     "Common issues: import errors (check extras), proxy not starting (check port), "
     "MCP not connecting (restart Claude Code), quality gate too strict (lower threshold). "
     "Do not discuss competitors. Do not reveal internal implementation details. "
-    "Do not provide refunds or billing changes — direct to billing@contextpilot.org. "
+    "Do not provide refunds or billing changes, direct to billing@contextpilot.org. "
 ) * 3  # realistic: 500-word system prompt
 
 support_qa = [
@@ -262,7 +262,7 @@ support_qa = [
     ("Does ContextPilot work with Ollama local models?",
      "Yes via proxy surface. Set OPENAI_BASE_URL=http://localhost:8432/v1 and run Ollama normally."),
     ("I need to process messages in multiple languages. Will it work?",
-     "Yes. TF-IDF works on any language. Keyword extraction uses regex \\b\\w+\\b — language agnostic."),
+     "Yes. TF-IDF works on any language. Keyword extraction uses regex \\b\\w+\\b, language agnostic."),
     ("How do I disable telemetry completely?",
      "In contextpilot.yaml: telemetry: enabled: false. Or env: CONTEXTPILOT_TELEMETRY_ENABLED=false"),
     ("The history summarizer is dropping important context from old messages",
@@ -287,13 +287,13 @@ bench(msgs_s3, system=sys_support, model="gpt-4o",      label="gpt-4o")
 
 
 # ============================================================
-# SCENARIO 4  —  Debugging session with repeated error traces
+# SCENARIO 4: Debugging session with repeated error traces
 # Realistic: developer debugging a production issue.
 # Error traceback + context repeated across every message.
 # ============================================================
 print()
 print("=" * 70)
-print("SCENARIO 4  —  Production Debugging Session (repeated tracebacks, 20 turns)")
+print("SCENARIO 4: Production Debugging Session (repeated tracebacks, 20 turns)")
 print("=" * 70)
 
 traceback_block = (
@@ -319,7 +319,7 @@ env_context = (
 )
 debug_turns = [
     "Getting this error in production. What causes it?",
-    "The constraint ix_orders_user_id_created_at — I don't remember creating that index.",
+    "The constraint ix_orders_user_id_created_at, I don't remember creating that index.",
     "Can a race condition cause this even with proper async handling?",
     "How do I reproduce this locally with concurrent requests?",
     "I checked the schema and the constraint exists. Should I drop it?",
@@ -331,7 +331,7 @@ debug_turns = [
     "How do I distinguish IntegrityError from DeadlockDetectedError in asyncpg?",
     "Should I use exponential backoff or fixed retry intervals here?",
     "The retry works but 0.1% of orders still fail. Can I make it idempotent?",
-    "Using order UUID as idempotency key — where should I store it?",
+    "Using order UUID as idempotency key, where should I store it?",
     "Redis for idempotency keys with TTL? What TTL makes sense for orders?",
     "How do I test the complete retry + idempotency flow in pytest?",
     "The fix is working in staging. How do I safely deploy to production?",
@@ -357,13 +357,13 @@ bench(msgs_s4, model="claude-sonnet", label="claude-sonnet")
 
 
 # ============================================================
-# SCENARIO 5  —  Multi-agent code review pipeline
+# SCENARIO 5: Multi-agent code review pipeline
 # Realistic: security → performance → style → tests agents
 # each passing growing accumulated context to the next.
 # ============================================================
 print()
 print("=" * 70)
-print("SCENARIO 5  —  Multi-Agent Code Review Pipeline (4 agents × 6 rounds)")
+print("SCENARIO 5: Multi-Agent Code Review Pipeline (4 agents × 6 rounds)")
 print("=" * 70)
 
 code_under_review = (
@@ -412,13 +412,13 @@ bench(msgs_s5, model="claude-opus",  label="claude-opus")
 
 
 # ============================================================
-# SCENARIO 6  —  LangChain agent with tool outputs
+# SCENARIO 6: LangChain agent with tool outputs
 # Realistic: agent calling search, calculator, code interpreter
 # Tool outputs prepended to every subsequent message.
 # ============================================================
 print()
 print("=" * 70)
-print("SCENARIO 6  —  LangChain Agent with Tool Outputs (15 turns, 3 tools/turn)")
+print("SCENARIO 6: LangChain Agent with Tool Outputs (15 turns, 3 tools/turn)")
 print("=" * 70)
 
 tool_search = (
@@ -478,13 +478,13 @@ bench(msgs_s6, model="gpt-4o-mini", label="gpt-4o-mini")
 
 
 # ============================================================
-# SCENARIO 7  —  Document Q&A over large technical document
+# SCENARIO 7: Document Q&A over large technical document
 # Realistic: developer asking questions about a long spec.
 # Full document prepended to each query (common naive pattern).
 # ============================================================
 print()
 print("=" * 70)
-print("SCENARIO 7  —  Document Q&A (large spec prepended to every query, 16 turns)")
+print("SCENARIO 7: Document Q&A (large spec prepended to every query, 16 turns)")
 print("=" * 70)
 
 technical_spec = (
@@ -551,12 +551,12 @@ bench(msgs_s7, model="claude-haiku", label="claude-haiku")
 
 
 # ============================================================
-# SCENARIO 8  —  Comparison across compression levels
+# SCENARIO 8: Comparison across compression levels
 # Shows the tradeoff between savings and quality.
 # ============================================================
 print()
 print("=" * 70)
-print("SCENARIO 8  —  Compression Level Comparison (same context, 3 modes)")
+print("SCENARIO 8: Compression Level Comparison (same context, 3 modes)")
 print("=" * 70)
 
 # Use the coding session from scenario 1 (known to compress well)
@@ -569,7 +569,7 @@ for level in ("conservative", "balanced", "aggressive"):
 # ============================================================
 print()
 print("=" * 70)
-print("SUMMARY  —  Key numbers for README")
+print("SUMMARY: Key numbers for README")
 print("=" * 70)
 print("""
   Scenario                          Tokens              Reduction   Quality  Latency
@@ -586,5 +586,5 @@ print("""
   All 3 compression levels same result on coding session (history dedup dominates)
 
   Note: scenario 3 (support bot) shows 18.3% because token counts exclude system
-  prompt — the 1500-word system prompt compression is not reflected in these numbers.
+  prompt, the 1500-word system prompt compression is not reflected in these numbers.
 """)

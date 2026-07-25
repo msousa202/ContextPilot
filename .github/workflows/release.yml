@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: write    # create GitHub Release and upload assets
-  id-token: write    # PyPI trusted publishing (OIDC) — no API token needed
+  id-token: write    # PyPI trusted publishing (OIDC), no API token needed
 
 jobs:
   release:
@@ -36,7 +36,7 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        # Uses OIDC trusted publishing — no PYPI_API_TOKEN secret required.
+        # Uses OIDC trusted publishing, no PYPI_API_TOKEN secret required.
         # One-time setup: pypi.org → contextpilot-ai → Settings → Publishing
         #   Publisher: GitHub Actions
         #   Owner:     msousa202

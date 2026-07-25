@@ -18,7 +18,7 @@ class BlockClass(str, Enum):
 
 
 class Intent(str, Enum):
-    """FR-002b: Conversation intent — steers how aggressively each strategy compresses."""
+    """FR-002b: Conversation intent, steers how aggressively each strategy compresses."""
 
     DEBUG = "debug"
     BUILD = "build"
@@ -42,7 +42,7 @@ class MessageBlock:
 
     @property
     def composite_score(self) -> float:
-        """Value of this block — higher means keep it. Used for triage decisions."""
+        """Value of this block: higher means keep it. Used for triage decisions."""
         return (
             self.relevance * 0.4
             + self.density * 0.3
@@ -89,7 +89,7 @@ _INTENT_PRIORITY = {Intent.DEBUG: 3, Intent.REFACTOR: 2, Intent.EXPLORE: 1}
 
 
 def detect_intent(messages: list[dict], window: int = 4) -> Intent:
-    """Cheap, deterministic intent heuristic — regex/keyword only, no LLM call.
+    """Cheap, deterministic intent heuristic: regex/keyword only, no LLM call.
 
     Examines the last `window` turns. Returns BUILD when there is
     conversational content but no strong signal, UNKNOWN when there is
@@ -125,8 +125,8 @@ def detect_intent(messages: list[dict], window: int = 4) -> Intent:
 class Analyzer:
     """FR-002: Context analysis engine.
 
-    Scores each message block across four dimensions — staleness, redundancy,
-    relevance, density — and classifies it as essential / compressible / droppable.
+    Scores each message block across four dimensions (staleness, redundancy,
+    relevance, density) and classifies it as essential / compressible / droppable.
     Analysis target: < 50 ms for up to 100K tokens (technical doc §8).
     """
 

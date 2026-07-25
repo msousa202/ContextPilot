@@ -18,7 +18,7 @@ class Compressor:
       3. Structural formatting stripping
       4. System prompt deduplication (aggressive mode only)
 
-    The compressor is surface-agnostic — the same pipeline runs for the Python
+    The compressor is surface-agnostic: the same pipeline runs for the Python
     library, proxy, and MCP server surfaces.
     """
 
@@ -51,7 +51,7 @@ class Compressor:
         )
 
         # `result`'s length may have changed (old turns collapsed into one summary
-        # block). Rebuild an original-index map by object identity — surviving
+        # block). Rebuild an original-index map by object identity, surviving
         # messages are the same dict objects as in `messages` (shallow copy above),
         # so `is`-identity holds. Stages after this one never change message count.
         block_ids: list[int] | None = None

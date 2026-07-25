@@ -24,13 +24,13 @@ def test_short_conversation_passes_through():
 
 def test_long_conversation_is_compressed():
     """History beyond the window should produce a summary block with fewer messages and tokens."""
-    # quality_threshold=0 bypasses the quality gate — this test verifies compression mechanics
+    # quality_threshold=0 bypasses the quality gate, this test verifies compression mechanics
     pipeline = Pipeline(cfg(history_window=3, quality_threshold=0))
     long_turn = (
         "This is a detailed explanation covering multiple aspects of the topic. "
         "The analysis includes technical context, domain knowledge, examples from practice, "
         "and conclusions that build on previous turns in the conversation. "
-    ) * 2  # ~100 words each — long enough that 80-char summary saves tokens
+    ) * 2  # ~100 words each, long enough that 80-char summary saves tokens
     messages = [{"role": "user", "content": f"Question {i}: {long_turn}"} for i in range(10)] + [
         {"role": "assistant", "content": f"Answer: {long_turn}"}
     ]
@@ -91,7 +91,7 @@ def test_telemetry_buffer_receives_event():
 
 
 def test_no_content_in_telemetry():
-    """Telemetry events must never contain prompt/response content — FR-006."""
+    """Telemetry events must never contain prompt/response content, FR-006."""
     pipeline = Pipeline(cfg())
     pipeline.optimize([{"role": "user", "content": "TOP SECRET: password123"}])
     events = pipeline.telemetry.drain()

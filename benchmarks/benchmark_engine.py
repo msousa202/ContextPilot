@@ -31,7 +31,7 @@ def bench(msgs, system=None, level="balanced", model="gpt-4o", rate=5.00):
 # Realistic: each message re-states the project context
 # --------------------------------------------------------------------------
 print()
-print("TEST 1: Long coding session — 15 rounds, same codebase context per turn")
+print("TEST 1: Long coding session, 15 rounds, same codebase context per turn")
 print("-" * 70)
 code_ctx = (
     "We are building a Python FastAPI application with PostgreSQL database. "
@@ -51,11 +51,11 @@ bench(msgs1)
 
 
 # --------------------------------------------------------------------------
-# TEST 2: RAG pipeline — same docs prepended every turn (common pattern)
+# TEST 2: RAG pipeline, same docs prepended every turn (common pattern)
 # Realistic: RAG pipeline retrieves same chunks repeatedly
 # --------------------------------------------------------------------------
 print()
-print("TEST 2: RAG chatbot — same retrieved docs prepended on every turn (12 rounds)")
+print("TEST 2: RAG chatbot, same retrieved docs prepended on every turn (12 rounds)")
 print("-" * 70)
 irrelevant = (
     "The history of ancient Rome spans more than a millennium starting from the Tiber. "
@@ -85,7 +85,7 @@ bench(msgs2)
 # Realistic: coding assistant with detailed instructions
 # --------------------------------------------------------------------------
 print()
-print("TEST 3: Verbose system prompt — 300-word prompt, 10 conversation turns")
+print("TEST 3: Verbose system prompt, 300-word prompt, 10 conversation turns")
 print("-" * 70)
 sys_prompt = (
     "You are a senior software engineer and technical lead with 15 years of experience. "
@@ -150,11 +150,11 @@ bench(msgs3, system=sys_prompt)
 
 
 # --------------------------------------------------------------------------
-# TEST 4: Multi-agent pipeline — 4 agents passing accumulating context (12 turns)
+# TEST 4: Multi-agent pipeline, 4 agents passing accumulating context (12 turns)
 # Realistic: analysis → fix → test → report pipeline where each agent repeats prior output
 # --------------------------------------------------------------------------
 print()
-print("TEST 4: Multi-agent pipeline — 4-stage pipeline, each agent repeats prior context")
+print("TEST 4: Multi-agent pipeline, 4-stage pipeline, each agent repeats prior context")
 print("-" * 70)
 base_report = (
     "Analysis complete. Found 47 Python files with 1203 functions total. "
@@ -182,11 +182,11 @@ bench(msgs4)
 
 
 # --------------------------------------------------------------------------
-# TEST 5: Tool-heavy agentic session — repeated XML tool outputs over many turns
+# TEST 5: Tool-heavy agentic session, repeated XML tool outputs over many turns
 # Realistic: Claude Code executing bash commands, same output schema each time
 # --------------------------------------------------------------------------
 print()
-print("TEST 5: Agentic tool session — 10 turns of XML tool output + analysis")
+print("TEST 5: Agentic tool session, 10 turns of XML tool output + analysis")
 print("-" * 70)
 tool_schema = (
     "<tool_result>\n"

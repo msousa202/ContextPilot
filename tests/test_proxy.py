@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 # ---------------------------------------------------------------------------
-# Import guard — proxy extras may not be installed in base test env.
+# Import guard, proxy extras may not be installed in base test env.
 # Skip the whole module rather than error on import.
 # ---------------------------------------------------------------------------
 pytest.importorskip(
@@ -86,7 +86,7 @@ class TestDetectProvider:
 
 
 # ---------------------------------------------------------------------------
-# Proxy compression — intercept without real HTTP forward
+# Proxy compression, intercept without real HTTP forward
 # ---------------------------------------------------------------------------
 
 

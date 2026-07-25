@@ -1,10 +1,9 @@
 # ContextPilot
 
 [![PyPI](https://img.shields.io/pypi/v/contextpilot-ai)](https://pypi.org/project/contextpilot-ai/)
-[![CI](https://github.com/marsousa2/contextpilot/actions/workflows/ci.yml/badge.svg)](https://github.com/marsousa2/contextpilot/actions/workflows/ci.yml)
+[![CI](https://github.com/msousa202/ContextPilot/actions/workflows/ci.yml/badge.svg)](https://github.com/msousa202/ContextPilot/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-153%20passing-brightgreen.svg)](tests/)
 
 **Cut your LLM API costs 60-80% with one line of code.**
 
@@ -24,6 +23,12 @@ Every API call goes through four steps:
 4. **Forward** the optimized (or original) payload to the provider; the response comes back unchanged
 
 No prompt content ever leaves your machine. Telemetry is numerical metadata only.
+
+---
+
+## Before you install it against real code
+
+Compression runs in your own process, in memory. Your prompts and responses go to the LLM provider you're already using and nowhere else, not to us, not to any third party. The local event log is metadata only (token counts, latency, quality scores, no prompt text) and it stays on your machine unless you deliberately opt in to a hosted dashboard, which doesn't exist yet, so there's currently nothing to opt into even if you tried. See [Privacy](#privacy) below, [SECURITY.md](SECURITY.md) for the full data-handling policy, and [docs/limitations.md](docs/limitations.md) for an honest list of tradeoffs and what this tool doesn't do.
 
 ---
 
@@ -50,7 +55,7 @@ The quality gate skips compression whenever quality drops below threshold. In al
 | 1,000 calls/day | $294/day | $61/day | **$7,006/mo** |
 | 10,000 calls/day | $2,943/day | $607/day | **$70,065/mo** |
 
-Run `python benchmarks/benchmark_readme.py` to reproduce locally.
+Run `python benchmarks/benchmark_readme.py` to reproduce locally. These benchmarks top out around 20K tokens per conversation; see [docs/limitations.md](docs/limitations.md) for where the performance budget is and isn't independently verified yet.
 
 ---
 
@@ -59,10 +64,12 @@ Run `python benchmarks/benchmark_readme.py` to reproduce locally.
 | Surface | Entry point | Best for |
 |---------|------------|----------|
 | **Python library** | `contextpilot.wrap(client)` | Backend apps, RAG pipelines, agents |
-| **Proxy (service)** | `contextpilot service install` | Claude Code, GPT Codex, Aider — always on |
+| **Proxy (service)** | `contextpilot service install` | Claude Code, GPT Codex, Aider, always on |
 | **Proxy (manual)** | `contextpilot proxy --port 8432` | Temporary sessions or per-project use |
 | **MCP server** | `claude mcp add contextpilot -- contextpilot mcp` | Claude Desktop, Claude Code |
 | **CLI migration** | `contextpilot migrate ./src/` | Existing codebases with 50+ LLM calls |
+
+If you're using Claude Code, Codex CLI, or another agent that already does its own session-level context compaction, ContextPilot is complementary, not a replacement: it trims the payload of each individual API call, while the coding tool manages the overall conversation.
 
 ---
 
@@ -136,10 +143,10 @@ contextpilot service uninstall  # remove if you ever want to stop
 Useful for temporary use or when you only want compression for a specific project:
 
 ```bash
-# Terminal 1 — keep this open
+# Terminal 1 (keep this open)
 contextpilot proxy --port 8432
 
-# Terminal 2 — set the env var, then use your tool normally
+# Terminal 2 (set the env var, then use your tool normally)
 export ANTHROPIC_BASE_URL=http://localhost:8432      # Linux / macOS
 $env:ANTHROPIC_BASE_URL = "http://localhost:8432"    # Windows PowerShell
 
@@ -188,7 +195,7 @@ contextpilot report
 Reads the local event log (`~/.contextpilot/events.jsonl`) and shows token savings, compression ratio, quality scores, and estimated cost saved. No dashboard required.
 
 ```
-  ContextPilot — Savings Report
+  ContextPilot · Savings Report
   ────────────────────────────────────────
   Calls logged   :  142
 
@@ -240,6 +247,10 @@ shadow_testing:
 
 telemetry:
   enabled: true
+  # The two fields below are reserved for the future hosted dashboard.
+  # That service doesn't exist yet, so setting api_key today has no effect,
+  # nothing gets sent anywhere. Local logging to ~/.contextpilot/events.jsonl
+  # always works and needs neither of these.
   endpoint: https://api.contextpilot.org/v1/telemetry
   api_key: ${CONTEXTPILOT_API_KEY}
 ```
@@ -250,9 +261,11 @@ Environment variable overrides: `CONTEXTPILOT_COMPRESSION_LEVEL`, `CONTEXTPILOT_
 
 ## Privacy
 
-Telemetry sends numerical metadata only: token counts, latency, quality scores, model IDs, timestamps. No prompt content, no response content, no PII ever leaves your environment. This is an architectural guarantee, not a policy.
+Telemetry sends numerical metadata only: token counts, latency, quality scores, model IDs, timestamps. No prompt content, no response content, no PII ever leaves your environment. This is an architectural guarantee, not a policy: compression runs in-process, and the telemetry schema has no field for content, so there's nothing to accidentally send even if that changed.
 
-See [SECURITY.md](SECURITY.md) for the full data handling policy, proxy trust model, and vulnerability reporting process.
+Local logging (`~/.contextpilot/events.jsonl`) is on by default and never leaves your machine. Remote sync to a hosted dashboard is opt-in only, requires an explicit API key, and today that endpoint isn't live yet, so enabling it is a no-op rather than a silent data leak.
+
+See [SECURITY.md](SECURITY.md) for the full data handling policy, proxy trust model, and vulnerability reporting process, and [docs/limitations.md](docs/limitations.md) for what this tool doesn't do yet.
 
 ---
 
@@ -301,4 +314,4 @@ See [CONTRIBUTING.md](https://github.com/msousa202/ContextPilot/blob/main/CONTRI
 
 ## License
 
-MIT — see [LICENSE](https://github.com/msousa202/ContextPilot/blob/main/LICENSE).
+MIT, see [LICENSE](https://github.com/msousa202/ContextPilot/blob/main/LICENSE).

@@ -24,7 +24,7 @@ jobs:
             A maintainer will take a look shortly. A few things that help us triage faster:
             - **Bug?** Make sure you've filled in Python version, ContextPilot version, and a minimal reproducible example.
             - **Question?** Check [the docs](https://contextpilot.org/docs) and existing issues first.
-            - **Feature request?** Describe the use case — not just the solution — so we can find the best approach together.
+            - **Feature request?** Describe the use case, not just the solution, so we can find the best approach together.
 
             We appreciate you taking the time to report this!
 
@@ -32,9 +32,9 @@ jobs:
             Thanks for your first pull request on ContextPilot!
 
             Here is what happens next:
-            1. CI runs automatically — watch for the green checkmarks below.
+            1. CI runs automatically. Watch for the green checkmarks below.
             2. A maintainer will review within a few days and may leave comments.
-            3. Requested changes are normal — don't be discouraged.
+            3. Requested changes are normal, don't be discouraged.
 
             Before requesting a review, please confirm:
             - Tests pass locally (`pytest`)

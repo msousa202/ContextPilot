@@ -1,4 +1,4 @@
-"""Tests for contextpilot/service.py — background service management."""
+"""Tests for contextpilot/service.py: background service management."""
 
 from __future__ import annotations
 

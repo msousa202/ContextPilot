@@ -60,7 +60,7 @@ class Pipeline:
     ):
         """Run the optimization pipeline and return (messages, system, event).
 
-        The caller always receives a valid payload — if quality falls below
+        The caller always receives a valid payload: if quality falls below
         the threshold, the original is returned (fail-safe, FR-004).
 
         When `report=True`, returns a 4th element: a `CompressionReport`
@@ -80,9 +80,9 @@ class Pipeline:
         orig_tokens = word_count_messages(messages)
         comp_tokens = word_count_messages(compressed_msgs)
 
-        # If compression increased token count, skip it — no benefit
+        # If compression increased token count, skip it, no benefit
         if comp_tokens >= orig_tokens:
-            # decisions/report content intentionally excluded from TelemetryEvent — FR-006
+            # decisions/report content intentionally excluded from TelemetryEvent, FR-006
             event = TelemetryEvent(
                 provider=provider,
                 model=model,
@@ -116,7 +116,7 @@ class Pipeline:
 
         latency_ms = (time.perf_counter() - t0) * 1000
 
-        # decisions/report content intentionally excluded from TelemetryEvent — FR-006
+        # decisions/report content intentionally excluded from TelemetryEvent, FR-006
         event = TelemetryEvent(
             provider=provider,
             model=model,

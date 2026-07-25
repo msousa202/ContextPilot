@@ -18,7 +18,7 @@ _CHUNK_DELIMITERS = re.compile(
 
 
 def _split_chunks(text: str) -> list[str]:
-    """Split text into RAG chunks — explicit delimiters or paragraph boundaries.
+    """Split text into RAG chunks: explicit delimiters or paragraph boundaries.
 
     Real RAG pipelines rarely use structured delimiters. As a fallback, split
     on double newlines when a message has 3+ paragraphs.
@@ -49,10 +49,10 @@ def prune_rag_chunks(
     For each message that appears to contain multiple RAG chunks, scores each
     chunk against the current query using TF-IDF cosine similarity and removes
     chunks below the configured relevance threshold (default 0.15). Requires
-    no embedding model — uses scikit-learn TF-IDF (technical doc §3.3).
+    no embedding model, uses scikit-learn TF-IDF (technical doc §3.3).
 
     `intent` adjusts the effective threshold: raised for `refactor`/`explore`
-    (drop more aggressively — unrelated files / general browsing), lowered
+    (drop more aggressively for unrelated files / general browsing), lowered
     for `debug` (keep more retrieved context while investigating an error).
     """
     base = config.compression.rag_relevance_min

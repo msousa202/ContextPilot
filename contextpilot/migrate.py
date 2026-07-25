@@ -122,7 +122,7 @@ def _transform_source(source: str, path: Path) -> FileResult:
     try:
         tree = ast.parse(source, filename=str(path))
     except SyntaxError as exc:
-        print(f"  [skip] {path}: syntax error — {exc}", file=sys.stderr)
+        print(f"  [skip] {path}: syntax error, {exc}", file=sys.stderr)
         return FileResult(path=path, original=source, rewritten=source, call_count=0)
 
     offsets = _line_offsets(source)
@@ -140,7 +140,7 @@ def _transform_source(source: str, path: Path) -> FileResult:
         if value is None or not _is_llm_call(value):
             continue
 
-        # Already wrapped — skip (wrap is itself a Call with func.id='wrap')
+        # Already wrapped, skip (wrap is itself a Call with func.id='wrap')
         call = value  # ast.Call
         outer = getattr(call, "_cp_wrapped", False)
         if outer:
@@ -169,7 +169,7 @@ def _transform_source(source: str, path: Path) -> FileResult:
     if not _has_contextpilot_import(tree):
         insert_after = _last_import_line(tree)
         if insert_after == 0:
-            # No imports at all — prepend
+            # No imports at all, prepend
             rewritten = "import contextpilot\n" + rewritten
         else:
             # Insert after the last import line
@@ -230,4 +230,4 @@ class MigrationAgent:
                 result.path.write_text(result.rewritten, encoding="utf-8")
             print(f"\nApplied: {len(results)} file(s) rewritten.")
         elif dry_run:
-            print("\nDry run — no files modified. Use --apply to write changes.")
+            print("\nDry run: no files modified. Use --apply to write changes.")

@@ -1,4 +1,4 @@
-"""FR-014: Per-call CompressionReport — structured visibility into pipeline decisions.
+"""FR-014: Per-call CompressionReport for structured visibility into pipeline decisions.
 
 Standalone module (no imports from compressor.py/pipeline.py) so the CLI and
 MCP server can use it without pulling in the whole pipeline.
@@ -53,7 +53,7 @@ class CompressionReport:
 def render_report(report: CompressionReport) -> str:
     """Human-readable rendering shared by CLI `--report` and the MCP report resource."""
     lines = [
-        "ContextPilot — Compression Report",
+        "ContextPilot · Compression Report",
         "==================================",
         f"  {report.original_tokens:,} -> {report.compressed_tokens:,} tokens "
         f"({report.reduction_pct:.1f}% reduction)",
@@ -63,7 +63,7 @@ def render_report(report: CompressionReport) -> str:
     ]
     if report.fallback_used:
         lines.append(
-            "  Quality gate rejected compression — original payload used, no per-block changes."
+            "  Quality gate rejected compression: original payload used, no per-block changes."
         )
     elif not report.blocks:
         lines.append("  No blocks were modified.")
@@ -71,6 +71,6 @@ def render_report(report: CompressionReport) -> str:
         for b in report.blocks:
             label = "system" if b.block_id == SYSTEM_BLOCK_ID else f"block {b.block_id}"
             lines.append(
-                f"  [{label}] {b.strategy_applied}: {b.action} — {b.reason} (-{b.tokens_saved}t)"
+                f"  [{label}] {b.strategy_applied}: {b.action}, {b.reason} (-{b.tokens_saved}t)"
             )
     return "\n".join(lines)

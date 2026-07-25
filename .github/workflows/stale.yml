@@ -27,7 +27,7 @@ jobs:
             comment or is labelled **pinned**. Thank you for contributing to ContextPilot!
           close-issue-message: >
             Closed automatically after 14 days with no activity following the stale
-            notice. Please re-open if this is still relevant — we are happy to revisit.
+            notice. Please re-open if this is still relevant, we are happy to revisit.
 
           # PRs: stale after 30 days, closed after 14 more
           days-before-pr-stale: 30

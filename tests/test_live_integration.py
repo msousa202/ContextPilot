@@ -1,8 +1,8 @@
-"""Live integration tests — real HTTP round-trip against a local mock server.
+"""Live integration tests: real HTTP round-trip against a local mock server.
 
 These tests use the actual openai SDK pointed at a localhost mock. They prove
 that the wrapper intercepts calls, compresses messages, and sends them over
-the wire exactly as a production call would — without spending any API credits.
+the wire exactly as a production call would, without spending any API credits.
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ def openai_client(server: MockOpenAIServer) -> OpenAI:
 
 
 # ---------------------------------------------------------------------------
-# FR-001: wrapper is transparent — response comes back unchanged
+# FR-001: wrapper is transparent, response comes back unchanged
 # ---------------------------------------------------------------------------
 
 
@@ -70,7 +70,7 @@ def test_extra_kwargs_forwarded(server: MockOpenAIServer):
 
 
 # ---------------------------------------------------------------------------
-# Short conversation — no compression expected (within history window)
+# Short conversation, no compression expected (within history window)
 # ---------------------------------------------------------------------------
 
 
@@ -88,7 +88,7 @@ def test_short_conv_passes_through_unchanged(server: MockOpenAIServer):
 
 
 # ---------------------------------------------------------------------------
-# Long conversation — history summarization fires
+# Long conversation, history summarization fires
 # ---------------------------------------------------------------------------
 
 
@@ -127,14 +127,14 @@ def test_recent_turns_always_preserved(server: MockOpenAIServer):
     long_content = "word " * 60  # 60 tokens each
 
     messages = [{"role": "user", "content": f"Old turn {i}: {long_content}"} for i in range(8)] + [
-        {"role": "user", "content": "Recent turn A — must arrive unchanged."},
-        {"role": "user", "content": "Recent turn B — must arrive unchanged."},
+        {"role": "user", "content": "Recent turn A, must arrive unchanged."},
+        {"role": "user", "content": "Recent turn B, must arrive unchanged."},
     ]
     client.chat.completions.create(model="gpt-4o", messages=messages)
 
     sent = server.last_messages()
-    assert sent[-2]["content"] == "Recent turn A — must arrive unchanged."
-    assert sent[-1]["content"] == "Recent turn B — must arrive unchanged."
+    assert sent[-2]["content"] == "Recent turn A, must arrive unchanged."
+    assert sent[-1]["content"] == "Recent turn B, must arrive unchanged."
 
 
 # ---------------------------------------------------------------------------

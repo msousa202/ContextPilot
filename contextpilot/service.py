@@ -97,7 +97,7 @@ def status() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Windows — Task Scheduler
+# Windows: Task Scheduler
 # ---------------------------------------------------------------------------
 
 
@@ -112,7 +112,7 @@ def _windows_task_xml(port: int, host: str) -> str:
     return f"""<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
-    <Description>ContextPilot local proxy — compresses LLM API requests automatically.</Description>
+    <Description>ContextPilot local proxy: compresses LLM API requests automatically.</Description>
   </RegistrationInfo>
   <Triggers>
     <LogonTrigger>
@@ -170,7 +170,7 @@ def _windows_status() -> None:
 
 
 # ---------------------------------------------------------------------------
-# macOS — launchd
+# macOS: launchd
 # ---------------------------------------------------------------------------
 
 
@@ -236,7 +236,7 @@ def _macos_status() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Linux — systemd user service
+# Linux: systemd user service
 # ---------------------------------------------------------------------------
 
 

@@ -30,7 +30,7 @@ class SystemPromptDeduplicator:
         if not system:
             return system
         if intent == Intent.DEBUG:
-            # Never truncate the system prompt mid-debug — full context matters most here.
+            # Never truncate the system prompt mid-debug, full context matters most here.
             self._last_hash = hashlib.sha256(system.encode()).hexdigest()[:16]
             return system
 
@@ -39,7 +39,7 @@ class SystemPromptDeduplicator:
         self._last_hash = h
 
         if not changed and config.compression.level == "aggressive":
-            # Truncate to short reference — model relies on cached version
+            # Truncate to short reference, model relies on cached version
             truncated = f"[SYSTEM CACHED ref:{h}] " + system[:80] + "…"
             if decisions is not None:
                 decisions.append(

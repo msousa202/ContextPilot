@@ -28,6 +28,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: No em dashes
+        shell: bash
+        run: |
+          if git grep -n "—" -- '*.py' '*.md' '*.yml' '*.yaml' '*.toml'; then
+            echo "Em dash (—) found above. Use a period, comma, colon, or plain hyphen instead."
+            exit 1
+          fi
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
@@ -37,13 +45,13 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev]"
 
-      - name: Lint — ruff
+      - name: Lint with ruff
         run: ruff check contextpilot/ tests/
 
-      - name: Format check — ruff
+      - name: Format check with ruff
         run: ruff format --check contextpilot/ tests/
 
-      - name: Type check — mypy
+      - name: Type check with mypy
         run: mypy contextpilot/
 
       - name: Run tests

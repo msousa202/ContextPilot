@@ -82,7 +82,7 @@ def test_openai_wrapper_calls_original_create():
 
 def test_openai_wrapper_compresses_long_history():
     client = make_openai_client()
-    # quality_threshold=0 bypasses quality gate — test verifies compression mechanics
+    # quality_threshold=0 bypasses quality gate, test verifies compression mechanics
     wrapped = contextpilot.wrap(
         client,
         config={
@@ -161,7 +161,7 @@ def test_anthropic_wrapper_passes_system():
 
 def test_anthropic_wrapper_compresses_long_history():
     client = make_anthropic_client()
-    # quality_threshold=0 bypasses quality gate — test verifies compression mechanics
+    # quality_threshold=0 bypasses quality gate, test verifies compression mechanics
     wrapped = contextpilot.wrap(
         client,
         config={

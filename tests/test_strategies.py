@@ -20,7 +20,7 @@ def test_history_no_compression_within_window():
     messages = [{"role": "user", "content": f"msg {i}"} for i in range(4)]
     blocks = Analyzer(config).analyze(messages)
     result = summarize_old_turns(messages, blocks, config)
-    assert result == messages  # window larger than history — unchanged
+    assert result == messages  # window larger than history, unchanged
 
 
 def test_history_compresses_old_turns():
@@ -186,7 +186,7 @@ def test_dedup_repeated_aggressive_truncates():
     d = SystemPromptDeduplicator()
     system = "You are a helpful assistant. " * 10
     d.process(system, cfg(level="aggressive"))  # first call
-    result = d.process(system, cfg(level="aggressive"))  # second call — same content
+    result = d.process(system, cfg(level="aggressive"))  # second call, same content
     assert len(result) < len(system)
     assert "CACHED" in result
 
@@ -202,7 +202,7 @@ def test_dedup_balanced_no_truncation():
 def test_dedup_changed_system_not_truncated():
     d = SystemPromptDeduplicator()
     d.process("System A", cfg(level="aggressive"))
-    result = d.process("System B — completely different", cfg(level="aggressive"))
+    result = d.process("System B, completely different", cfg(level="aggressive"))
     assert "System B" in result  # new system passed through
 
 

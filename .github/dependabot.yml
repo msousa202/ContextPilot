@@ -1,7 +1,7 @@
 version: 2
 
 updates:
-  # Python dependencies — weekly on Mondays
+  # Python dependencies, weekly on Mondays
   - package-ecosystem: pip
     directory: /
     schedule:
@@ -40,7 +40,7 @@ updates:
           - "starlette"
           - "uvicorn"
 
-  # GitHub Actions — monthly
+  # GitHub Actions, monthly
   - package-ecosystem: github-actions
     directory: /
     schedule:

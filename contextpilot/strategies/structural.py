@@ -5,7 +5,7 @@ import re
 from contextpilot.analyzer import Intent
 from contextpilot.config import ContextPilotConfig
 
-# (pattern, replacement) — applied in order
+# (pattern, replacement), applied in order
 _RULES: list[tuple[re.Pattern, str]] = [
     # 3+ blank lines → 2
     (re.compile(r"\n{3,}"), "\n\n"),
@@ -24,7 +24,7 @@ def strip_structural(text: str, intent: Intent = Intent.UNKNOWN) -> str:
     """Apply deterministic regex transformations to reduce formatting overhead.
 
     During `refactor`, the two repetition-collapsing rules (repeated
-    horizontal rules / repeated identical lines) are skipped — they can
+    horizontal rules / repeated identical lines) are skipped, they can
     otherwise mangle diff hunks where genuinely repeated `+`/`-` lines carry
     meaning that should be preserved.
     """

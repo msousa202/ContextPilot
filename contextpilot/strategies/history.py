@@ -105,7 +105,7 @@ _STOPWORDS = frozenset(
 def _extract_keywords(text: str, top_k: int = 8) -> str:
     """Return the top-K most distinctive words from text.
 
-    Prioritises long, rare, non-stop words — the terms a TF-IDF quality gate
+    Prioritises long, rare, non-stop words: the terms a TF-IDF quality gate
     will weight highest when measuring semantic similarity.
     """
     words = re.findall(r"\b[a-zA-Z][a-zA-Z0-9]{2,}\b", text)
@@ -129,7 +129,7 @@ def summarize_old_turns(
     """FR-003a: Conversation history summarization.
 
     Keeps the last `history_window` turns verbatim. All older turns are
-    collapsed into a compact keyword-based [CONTEXT] block — no LLM call,
+    collapsed into a compact keyword-based [CONTEXT] block, no LLM call,
     under 10 ms (technical doc §3.1).
 
     Keyword extraction preserves TF-IDF signal so the quality gate scores
@@ -186,7 +186,7 @@ def summarize_old_turns(
                     block_id=blk.index,
                     strategy_applied="history",
                     action="summarized",
-                    reason=f"outside history_window ({window} turns) — folded into keyword summary",
+                    reason=f"outside history_window ({window} turns), folded into keyword summary",
                     tokens_saved=max(0, blk.token_count - share),
                 )
             )

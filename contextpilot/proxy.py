@@ -131,7 +131,7 @@ def _make_app(pipeline: Pipeline) -> "Starlette":  # type: ignore[return]
                 model=body.get("model", "unknown"),
             )
             body["messages"] = optimized_msgs
-            # Only rewrite system if it was a plain string — leave content-block lists alone
+            # Only rewrite system if it was a plain string, leave content-block lists alone
             if optimized_sys is not None and isinstance(system_raw, str):
                 body["system"] = optimized_sys
             forward_json = body
