@@ -26,8 +26,9 @@ repos:
   - repo: local
     hooks:
       - id: no-em-dash
-        name: no em dash (—)
+        name: no em dash (U+2014)
         description: "Use a period, comma, colon, or plain hyphen instead. See CLAUDE.md's Writing style section."
         language: pygrep
         entry: "—"
         types: [text]
+        exclude: ^(\.github/workflows/ci\.yml|\.pre-commit-config\.yaml)$

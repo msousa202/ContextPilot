@@ -32,7 +32,7 @@ Known spec-vs-shipped gaps to keep in mind while working here: the quality gate 
 
 ## Writing style
 
-No em dashes ("—") anywhere: not in chat replies, not in docs, not in code comments or CLI/MCP output strings. Use a period, comma, colon, or a plain hyphen instead, or restructure the sentence. This mirrors the `Contextpilot-site` repo's `BRAND.md` rule; keep both in sync. Tone across all project writing: professional but plain, like a developer explaining something to another developer, not marketing copy.
+No em dashes (Unicode U+2014) anywhere: not in chat replies, not in docs, not in code comments or CLI/MCP output strings. Use a period, comma, colon, or a plain hyphen instead, or restructure the sentence. This mirrors the `Contextpilot-site` repo's `BRAND.md` rule; keep both in sync. Tone across all project writing: professional but plain, like a developer explaining something to another developer, not marketing copy.
 
 ---
 

@@ -31,8 +31,9 @@ jobs:
       - name: No em dashes
         shell: bash
         run: |
-          if git grep -n "—" -- '*.py' '*.md' '*.yml' '*.yaml' '*.toml'; then
-            echo "Em dash (—) found above. Use a period, comma, colon, or plain hyphen instead."
+          if git grep -n "—" -- '*.py' '*.md' '*.yml' '*.yaml' '*.toml' \
+            ':!.github/workflows/ci.yml' ':!.pre-commit-config.yaml'; then
+            echo "Em dash (Unicode U+2014) found above. Use a period, comma, colon, or plain hyphen instead."
             exit 1
           fi
 
