@@ -13,9 +13,12 @@ class CompressionConfig(BaseModel):
     level: str = "balanced"  # conservative | balanced | aggressive
     quality_threshold: float = 72.0  # fallback below this score (TF-IDF weighted recall metric)
     history_window: int = 6  # keep last N turns verbatim
+    history_epoch: int = 8  # summarization boundary advances in steps of N turns (cache stability)
     rag_relevance_min: float = 0.15  # drop RAG chunks below this TF-IDF score
     intent_override: str | None = None  # debug|build|explore|refactor|unknown, None = auto-detect
     intent_detection_window: int = 4  # how many recent turns the intent heuristic examines
+    cache_aware: bool = True  # refuse compression that raises cache-adjusted request cost
+    inject_cache_control: bool = True  # proxy: add cache breakpoint to big stable system prompts
 
     @field_validator("intent_override")
     @classmethod

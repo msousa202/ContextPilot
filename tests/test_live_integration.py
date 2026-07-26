@@ -93,10 +93,21 @@ def test_short_conv_passes_through_unchanged(server: MockOpenAIServer):
 
 
 def test_long_conv_is_compressed_over_wire(server: MockOpenAIServer):
-    """Verify that fewer messages hit the wire after history compression."""
+    """Verify that fewer messages hit the wire after history compression.
+
+    history_epoch is pinned to 1 so the epoch boundary reaches these 10 turns;
+    cache_aware is off because this test asserts wire shape, not economics.
+    """
     client = contextpilot.wrap(
         openai_client(server),
-        config={"compression": {"history_window": 3, "quality_threshold": 0}},
+        config={
+            "compression": {
+                "history_window": 3,
+                "history_epoch": 1,
+                "quality_threshold": 0,
+                "cache_aware": False,
+            }
+        },
     )
     long_content = (
         "This is a detailed explanation of the topic covering technical context, "

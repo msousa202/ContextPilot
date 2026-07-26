@@ -9,6 +9,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from contextpilot.config import ContextPilotConfig
+from contextpilot.content import message_text
 
 
 class BlockClass(str, Enum):
@@ -95,11 +96,11 @@ def detect_intent(messages: list[dict], window: int = 4) -> Intent:
     conversational content but no strong signal, UNKNOWN when there is
     nothing to analyze.
     """
-    recent = [m for m in messages[-window:] if (m.get("content") or "").strip()]
+    recent = [m for m in messages[-window:] if message_text(m).strip()]
     if not recent:
         return Intent.UNKNOWN
 
-    texts = [m["content"] for m in recent]
+    texts = [message_text(m) for m in recent]
     joined = "\n".join(texts)
 
     debug_score = len(DEBUG_SIGNAL_PATTERN.findall(joined))
@@ -138,11 +139,11 @@ class Analyzer:
         if n == 0:
             return []
 
-        texts = [m.get("content") or "" for m in messages]
+        texts = [message_text(m) for m in messages]
 
         # Most recent user message drives relevance scoring
         recent_user = next(
-            (m.get("content") or "" for m in reversed(messages) if m.get("role") == "user"),
+            (message_text(m) for m in reversed(messages) if m.get("role") == "user"),
             "",
         )
 

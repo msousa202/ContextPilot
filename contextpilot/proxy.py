@@ -84,6 +84,51 @@ def _system_as_str(system: object) -> str | None:
     return None
 
 
+# Minimum estimated tokens before a cache breakpoint is worth injecting. Below
+# the model-specific minimum (512-4096 depending on model) the marker is
+# silently ignored by the API, so a conservative floor is harmless either way.
+_INJECT_MIN_WORDS = 900
+# Anthropic allows at most 4 cache_control breakpoints per request.
+_MAX_BREAKPOINTS = 4
+
+
+def _count_cache_controls(body: dict) -> int:
+    count = 0
+    system = body.get("system")
+    if isinstance(system, list):
+        count += sum(
+            1 for b in system if isinstance(b, dict) and b.get("cache_control") is not None
+        )
+    for msg in body.get("messages", []):
+        content = msg.get("content")
+        if isinstance(content, list):
+            count += sum(
+                1 for b in content if isinstance(b, dict) and b.get("cache_control") is not None
+            )
+    return count
+
+
+def _maybe_inject_cache_control(body: dict) -> bool:
+    """Add a cache breakpoint to a large plain-string system prompt.
+
+    Many clients send a big, stable system prompt every call without marking
+    it cacheable; the provider then bills it at full price on every request
+    instead of ~0.1x for cache reads. When the client set no breakpoints of
+    its own, converting the string system prompt to a text block with
+    `cache_control` lets the provider's cache do the work. Payloads that
+    already manage their own breakpoints are left strictly alone.
+    """
+    system = body.get("system")
+    if not isinstance(system, str):
+        return False
+    if len(system.split()) < _INJECT_MIN_WORDS:
+        return False
+    if _count_cache_controls(body) >= _MAX_BREAKPOINTS:
+        return False
+    body["system"] = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
+    return True
+
+
 def _make_app(pipeline: Pipeline) -> "Starlette":  # type: ignore[return]
 
     async def _openai_chat(request: Request) -> Response:
@@ -101,7 +146,7 @@ def _make_app(pipeline: Pipeline) -> "Starlette":  # type: ignore[return]
             body["messages"] = optimized
             forward_json = body
         except Exception as exc:
-            log.debug("OpenAI compression skipped: %s", exc)
+            log.warning("OpenAI payload forwarded uncompressed (pipeline skipped): %s", exc)
 
         is_stream = _get_stream_flag(raw, forward_json)
 
@@ -134,9 +179,12 @@ def _make_app(pipeline: Pipeline) -> "Starlette":  # type: ignore[return]
             # Only rewrite system if it was a plain string, leave content-block lists alone
             if optimized_sys is not None and isinstance(system_raw, str):
                 body["system"] = optimized_sys
+            if pipeline.config.compression.inject_cache_control:
+                if _maybe_inject_cache_control(body):
+                    log.info("cache_control breakpoint injected on system prompt")
             forward_json = body
         except Exception as exc:
-            log.debug("Anthropic compression skipped: %s", exc)
+            log.warning("Anthropic payload forwarded uncompressed (pipeline skipped): %s", exc)
 
         is_stream = _get_stream_flag(raw, forward_json)
 

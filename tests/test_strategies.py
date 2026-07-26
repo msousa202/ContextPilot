@@ -3,7 +3,7 @@ from contextpilot.config import ContextPilotConfig
 from contextpilot.report import BlockDecision
 from contextpilot.strategies.agent_memory import compress_agent_handoff
 from contextpilot.strategies.dedup import SystemPromptDeduplicator
-from contextpilot.strategies.history import summarize_old_turns
+from contextpilot.strategies.history import epoch_boundary, summarize_old_turns
 from contextpilot.strategies.rag_pruner import prune_rag_chunks
 from contextpilot.strategies.structural import apply_structural_stripping, strip_structural
 
@@ -24,7 +24,7 @@ def test_history_no_compression_within_window():
 
 
 def test_history_compresses_old_turns():
-    config = cfg(history_window=3)
+    config = cfg(history_window=3, history_epoch=1)
     messages = [{"role": "user", "content": f"Turn number {i} with some content"} for i in range(8)]
     blocks = Analyzer(config).analyze(messages)
     result = summarize_old_turns(messages, blocks, config)
@@ -36,7 +36,7 @@ def test_history_compresses_old_turns():
 
 
 def test_history_summary_reduces_tokens():
-    config = cfg(history_window=2)
+    config = cfg(history_window=2, history_epoch=1)
     # Each message is long enough that a compact summary header is cheaper than the full text
     messages = [
         {
@@ -67,78 +67,130 @@ def test_history_summary_reduces_tokens():
     assert total_comp < total_orig
 
 
-# --- Intent-aware behavior ---
+# --- Cache-stability contract ---
 
 
-def test_history_debug_widens_window():
-    config = cfg(history_window=3)
-    messages = [{"role": "user", "content": f"Turn {i} with some content"} for i in range(5)]
+def test_epoch_boundary_quantized():
+    # boundary only advances in epoch-sized steps
+    assert epoch_boundary(10, 4, 8, 10) == 0  # 10-4=6, floor to epoch 8 -> 0
+    assert epoch_boundary(13, 4, 8, 13) == 8  # 13-4=9, floor -> 8
+    assert epoch_boundary(20, 4, 8, 20) == 16
+    # never exceeds the mutable prefix
+    assert epoch_boundary(20, 4, 8, 7) == 0
+    assert epoch_boundary(20, 4, 8, 9) == 8
+
+
+def test_history_prefix_stable_between_epochs():
+    """The forwarded payload must be byte-identical across turns between epoch jumps."""
+    config = cfg(history_window=2, history_epoch=4)
+    base = [
+        {"role": "user", "content": f"Turn {i} some distinctive content number {i}"}
+        for i in range(12)
+    ]
+    analyzer = Analyzer(config)
+
+    out_prev = summarize_old_turns(base[:10], analyzer.analyze(base[:10]), config)
+    out_next = summarize_old_turns(base[:11], analyzer.analyze(base[:11]), config)
+    # Same epoch boundary (10-2=8 and 11-2=9 both floor to 8): the summary
+    # block and every surviving old turn must be identical.
+    assert out_prev[0] == out_next[0]
+    shared = min(len(out_prev), len(out_next)) - 1
+    assert out_prev[:shared] == out_next[:shared]
+
+
+def test_history_never_folds_block_content():
+    config = cfg(history_window=1, history_epoch=1)
+    messages = [
+        {"role": "user", "content": [{"type": "tool_result", "content": "result data"}]},
+        {"role": "user", "content": "plain old turn with content"},
+        {"role": "user", "content": "final question"},
+    ]
     blocks = Analyzer(config).analyze(messages)
-    # Without an intent hint, 5 > 3 -> summarized
-    assert summarize_old_turns(messages, blocks, config) != messages
-    # DEBUG widens the effective window (3 + 4 = 7 >= 5) -> unchanged
-    result = summarize_old_turns(messages, blocks, config, intent=Intent.DEBUG)
+    result = summarize_old_turns(messages, blocks, config)
+    # Block-content message at index 0 blocks the mutable prefix: nothing folded
     assert result == messages
 
 
-def test_history_explore_narrows_window():
-    config = cfg(history_window=6)
-    messages = [{"role": "user", "content": f"Turn {i} with some content"} for i in range(5)]
-    blocks = Analyzer(config).analyze(messages)
-    # Without an intent hint, 5 <= 6 -> unchanged
-    assert summarize_old_turns(messages, blocks, config) == messages
-    # EXPLORE narrows the effective window (6 - 2 = 4 < 5) -> oldest turn summarized
-    result = summarize_old_turns(messages, blocks, config, intent=Intent.EXPLORE)
-    assert "Prior context" in result[0]["content"]
-    assert result != messages
-
-
-def test_history_debug_preserves_error_excerpt():
-    config = cfg(history_window=1)
+def test_history_debug_excerpt_is_content_based():
+    config = cfg(history_window=1, history_epoch=1)
     messages = [
         {"role": "user", "content": "Traceback (most recent call last):\nTypeError: boom"},
         {"role": "user", "content": "final question"},
     ]
     blocks = Analyzer(config).analyze(messages)
-    result = summarize_old_turns(messages, blocks, config, intent=Intent.DEBUG)
+    # No intent argument: the error excerpt is preserved because the message
+    # itself contains a debug signal, deterministically.
+    result = summarize_old_turns(messages, blocks, config)
     assert "Traceback" in result[0]["content"]
 
 
-def test_structural_refactor_skips_repetition_rules():
+# --- Structural stripping ---
+
+
+def test_structural_diff_content_skips_repetition_rules():
+    plain = "Section A\n---\n---\n---\nSection B"
+    diffish = "diff --git a/x b/x\n@@ -1 +1 @@\nSection A\n---\n---\n---\nSection B"
+    assert strip_structural(plain).count("---") == 1
+    # Repetition collapsing is skipped when the text itself contains diff markers
+    assert strip_structural(diffish).count("---") == 3
+
+
+def test_structural_deterministic():
+    text = "Hello   \n\n\n\nWorld\n---\n---\n---\n"
+    assert strip_structural(text) == strip_structural(text)
+
+
+def test_structural_skips_block_content():
+    config = cfg()
+    block_msg = {
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "Hello\n\n\n\nWorld", "cache_control": {"type": "ephemeral"}}
+        ],
+    }
+    result = apply_structural_stripping([block_msg], config)
+    assert result[0] is block_msg  # forwarded untouched
+
+
+def test_strip_excessive_blank_lines():
+    text = "Hello\n\n\n\n\nWorld"
+    result = strip_structural(text)
+    assert "\n\n\n" not in result
+
+
+def test_strip_trailing_whitespace():
+    text = "Hello   \nWorld   "
+    result = strip_structural(text)
+    for line in result.splitlines():
+        assert line == line.rstrip()
+
+
+def test_strip_empty_xml_tags():
+    text = "Hello <br></br> World"
+    result = strip_structural(text)
+    assert "<br></br>" not in result
+
+
+def test_strip_repeated_horizontal_rules():
     text = "Section A\n---\n---\n---\nSection B"
-    default_result = strip_structural(text)
-    refactor_result = strip_structural(text, intent=Intent.REFACTOR)
-    assert default_result.count("---") == 1
-    assert refactor_result.count("---") == 3
+    result = strip_structural(text)
+    assert result.count("---") == 1
 
 
-def test_dedup_debug_never_truncates():
-    d = SystemPromptDeduplicator()
-    system = "You are a helpful assistant. " * 10
-    d.process(system, cfg(level="aggressive"), intent=Intent.DEBUG)
-    result = d.process(system, cfg(level="aggressive"), intent=Intent.DEBUG)
-    assert result == system
-    assert "CACHED" not in result
-
-
-def test_rag_pruner_intent_thresholds_differ():
-    config = cfg(rag_relevance_min=0.01)
-    relevant = "Python is a versatile programming language for data science."
-    unrelated = "Ancient Rome had a complex system of aqueducts and roads."
-    messages = [_rag_msg([relevant, unrelated])]
-    query = "Python programming data science"
-    default_result = prune_rag_chunks(messages, query, config)
-    refactor_result = prune_rag_chunks(messages, query, config, intent=Intent.REFACTOR)
-    # The higher effective threshold under REFACTOR should never keep *more*
-    # content than the default (lower) threshold.
-    assert len(refactor_result[0]["content"]) <= len(default_result[0]["content"])
+def test_structural_messages_roundtrip():
+    config = cfg()
+    messages = [{"role": "user", "content": "Hello   \n\n\n\nWorld"}]
+    result = apply_structural_stripping(messages, config)
+    assert len(result) == 1
+    assert result[0]["role"] == "user"
+    assert "\n\n\n" not in result[0]["content"]
 
 
 # --- Report / decision tracking ---
 
 
 def test_history_summarize_emits_decisions():
-    config = cfg(history_window=1)
+    config = cfg(history_window=1, history_epoch=1)
     messages = [
         {"role": "user", "content": f"Turn {i} with plenty of content here"} for i in range(4)
     ]
@@ -161,49 +213,35 @@ def test_rag_pruner_emits_decision_on_drop():
         assert decisions[0].action == "dropped"
 
 
-def test_dedup_emits_decision_on_truncate():
+# --- System prompt dedup (stability tracking; truncation removed) ---
+
+
+def test_dedup_never_truncates():
     d = SystemPromptDeduplicator()
     system = "You are a helpful assistant. " * 10
-    decisions: list[BlockDecision] = []
-    d.process(system, cfg(level="aggressive"), decisions=decisions)
-    d.process(system, cfg(level="aggressive"), decisions=decisions)
-    assert len(decisions) == 1
-    assert decisions[0].strategy_applied == "dedup"
-    assert decisions[0].action == "summarized"
-
-
-# --- System prompt dedup ---
-
-
-def test_dedup_first_call_unchanged():
-    d = SystemPromptDeduplicator()
-    system = "You are a helpful assistant."
+    d.process(system, cfg(level="aggressive"))
     result = d.process(system, cfg(level="aggressive"))
     assert result == system
+    assert "CACHED" not in result
 
 
-def test_dedup_repeated_aggressive_truncates():
-    d = SystemPromptDeduplicator()
-    system = "You are a helpful assistant. " * 10
-    d.process(system, cfg(level="aggressive"))  # first call
-    result = d.process(system, cfg(level="aggressive"))  # second call, same content
-    assert len(result) < len(system)
-    assert "CACHED" in result
-
-
-def test_dedup_balanced_no_truncation():
+def test_dedup_tracks_stability():
     d = SystemPromptDeduplicator()
     system = "You are a helpful assistant."
-    d.process(system, cfg(level="balanced"))
-    result = d.process(system, cfg(level="balanced"))
-    assert result == system  # balanced mode never truncates
+    assert d.observe(system) is False  # first sighting
+    assert d.observe(system) is True
+    assert d.stable_count == 1
+    assert d.observe("Different prompt") is False
+    assert d.stable_count == 0
 
 
-def test_dedup_changed_system_not_truncated():
+def test_dedup_reset():
     d = SystemPromptDeduplicator()
-    d.process("System A", cfg(level="aggressive"))
-    result = d.process("System B, completely different", cfg(level="aggressive"))
-    assert "System B" in result  # new system passed through
+    d.observe("prompt")
+    d.observe("prompt")
+    d.reset()
+    assert d.stable_count == 0
+    assert d.observe("prompt") is False
 
 
 # --- RAG chunk pruning ---
@@ -240,41 +278,37 @@ def test_rag_prune_never_empties_message():
     assert result[0]["content"]  # not empty
 
 
-# --- Structural stripping ---
+def test_rag_pruner_intent_thresholds_differ():
+    config = cfg(rag_relevance_min=0.01)
+    relevant = "Python is a versatile programming language for data science."
+    unrelated = "Ancient Rome had a complex system of aqueducts and roads."
+    messages = [_rag_msg([relevant, unrelated])]
+    query = "Python programming data science"
+    default_result = prune_rag_chunks(messages, query, config)
+    refactor_result = prune_rag_chunks(messages, query, config, intent=Intent.REFACTOR)
+    # The higher effective threshold under REFACTOR should never keep *more*
+    # content than the default (lower) threshold.
+    assert len(refactor_result[0]["content"]) <= len(default_result[0]["content"])
 
 
-def test_strip_excessive_blank_lines():
-    text = "Hello\n\n\n\n\nWorld"
-    result = strip_structural(text)
-    assert "\n\n\n" not in result
+def test_rag_prune_historical_message_uses_own_query_only():
+    """A historical chunk message with no leading question is left untouched.
+
+    Pruning history against the current conversation query would rewrite old
+    bytes on every turn and defeat provider prefix caching.
+    """
+    config = cfg(rag_relevance_min=0.9)
+    history_msg = _rag_msg(["chunk about Python", "chunk about Rome"])
+    final_msg = {"role": "user", "content": "tell me about Python"}
+    result = prune_rag_chunks([history_msg, final_msg], "Python", config)
+    assert result[0] == history_msg  # no leading query, not final: untouched
 
 
-def test_strip_trailing_whitespace():
-    text = "Hello   \nWorld   "
-    result = strip_structural(text)
-    for line in result.splitlines():
-        assert line == line.rstrip()
-
-
-def test_strip_empty_xml_tags():
-    text = "Hello <br></br> World"
-    result = strip_structural(text)
-    assert "<br></br>" not in result
-
-
-def test_strip_repeated_horizontal_rules():
-    text = "Section A\n---\n---\n---\nSection B"
-    result = strip_structural(text)
-    assert result.count("---") == 1
-
-
-def test_structural_messages_roundtrip():
-    config = cfg()
-    messages = [{"role": "user", "content": "Hello   \n\n\n\nWorld"}]
-    result = apply_structural_stripping(messages, config)
-    assert len(result) == 1
-    assert result[0]["role"] == "user"
-    assert "\n\n\n" not in result[0]["content"]
+def test_rag_prune_skips_block_content():
+    config = cfg(rag_relevance_min=0.01)
+    block_msg = {"role": "user", "content": [{"type": "text", "text": "a\n\nb\n\nc"}]}
+    result = prune_rag_chunks([block_msg], "query", config)
+    assert result[0] is block_msg
 
 
 # --- Agent memory ---

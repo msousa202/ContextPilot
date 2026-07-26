@@ -2,24 +2,40 @@ from __future__ import annotations
 
 from contextpilot.analyzer import Intent, MessageBlock
 from contextpilot.config import ContextPilotConfig
+from contextpilot.content import (
+    is_plain_string,
+    message_has_cache_control,
+    message_text,
+    payload_is_cache_managed,
+)
 from contextpilot.report import SUMMARY_BLOCK_ID, BlockDecision
 from contextpilot.strategies.dedup import SystemPromptDeduplicator
 from contextpilot.strategies.history import summarize_old_turns
 from contextpilot.strategies.rag_pruner import prune_rag_chunks
-from contextpilot.strategies.structural import apply_structural_stripping
+from contextpilot.strategies.structural import apply_structural_stripping, strip_structural
 
 
 class Compressor:
-    """FR-003: Multi-stage compression pipeline.
+    """FR-003: Multi-stage compression pipeline, cache-aware.
 
-    Applies strategies in order:
-      1. Conversation history summarization (keyword-preserving, no LLM call)
-      2. RAG chunk pruning (explicit delimiters + paragraph-level fallback)
-      3. Structural formatting stripping
-      4. System prompt deduplication (aggressive mode only)
+    Strategy order for payloads without client-set cache_control markers:
+      1. Conversation history summarization (epoch-quantized, byte-stable)
+      2. RAG chunk pruning (per-message self-query; conversation query only
+         on the final message)
+      3. Structural formatting stripping (pure per-message function)
 
-    The compressor is surface-agnostic: the same pipeline runs for the Python
-    library, proxy, and MCP server surfaces.
+    Payloads that carry any `cache_control` marker are cache-managed by the
+    client (Claude Code and most agent harnesses). For those, every byte at
+    or before a breakpoint is part of the provider's cached prefix, and
+    rewriting it would cost roughly 10x what it saves (see `cost.py`). Only
+    the final message, the one region the provider has not cached yet, is
+    compressed.
+
+    Messages whose content is a block list (tool calls, tool results,
+    images) are always forwarded byte-identical.
+
+    The compressor is surface-agnostic: the same pipeline runs for the
+    Python library, proxy, and MCP server surfaces.
     """
 
     def __init__(self, config: ContextPilotConfig) -> None:
@@ -37,18 +53,20 @@ class Compressor:
         if not messages:
             return messages, system
 
+        self._dedup.observe(system)
+
+        if payload_is_cache_managed(messages, system):
+            return self._compress_tail_only(messages, decisions=decisions), system
+
         query = next(
-            (m.get("content") or "" for m in reversed(messages) if m.get("role") == "user"),
+            (message_text(m) for m in reversed(messages) if m.get("role") == "user"),
             "",
         )
-
         intent = blocks[0].intent if blocks else Intent.UNKNOWN
         result = list(messages)
 
-        # Stage 1: history summarization (keyword-preserving, no LLM call)
-        result = summarize_old_turns(
-            result, blocks, self.config, intent=intent, decisions=decisions
-        )
+        # Stage 1: history summarization (epoch-quantized, keyword-preserving)
+        result = summarize_old_turns(result, blocks, self.config, decisions=decisions)
 
         # `result`'s length may have changed (old turns collapsed into one summary
         # block). Rebuild an original-index map by object identity, surviving
@@ -59,23 +77,46 @@ class Compressor:
             id_to_index = {id(m): b.index for m, b in zip(messages, blocks)}
             block_ids = [id_to_index.get(id(m), SUMMARY_BLOCK_ID) for m in result]
 
-        # Stage 2: RAG chunk pruning (paragraph-level fallback included)
-        if query:
-            result = prune_rag_chunks(
-                result, query, self.config, intent=intent, block_ids=block_ids, decisions=decisions
+        # Stage 2: RAG chunk pruning (self-query per message, cache-stable)
+        result = prune_rag_chunks(
+            result, query, self.config, intent=intent, block_ids=block_ids, decisions=decisions
+        )
+
+        # Stage 3: structural stripping (pure per-message function)
+        result = apply_structural_stripping(result, self.config)
+
+        return result, system
+
+    def _compress_tail_only(
+        self,
+        messages: list[dict],
+        *,
+        decisions: list[BlockDecision] | None = None,
+    ) -> list[dict]:
+        """Cache-managed payloads: compress only the final, not-yet-cached message."""
+        last = messages[-1]
+        if not is_plain_string(last) or message_has_cache_control(last):
+            return messages
+
+        content = last.get("content") or ""
+        stripped = strip_structural(content)
+        if stripped == content:
+            return messages
+
+        if decisions is not None:
+            decisions.append(
+                BlockDecision(
+                    block_id=len(messages) - 1,
+                    strategy_applied="structural",
+                    action="summarized",
+                    reason=(
+                        "payload is cache-managed (client cache_control present); "
+                        "only the final uncached message was stripped"
+                    ),
+                    tokens_saved=max(0, len(content.split()) - len(stripped.split())),
+                )
             )
-
-        # Stage 3: structural stripping
-        result = apply_structural_stripping(result, self.config, intent=intent)
-
-        # Stage 4: system prompt dedup (aggressive only)
-        compressed_system = system
-        if system and self.config.compression.level == "aggressive":
-            compressed_system = self._dedup.process(
-                system, self.config, intent=intent, decisions=decisions
-            )
-
-        return result, compressed_system
+        return messages[:-1] + [{**last, "content": stripped}]
 
     def reset(self) -> None:
         """Reset stateful strategies (e.g. between independent sessions)."""

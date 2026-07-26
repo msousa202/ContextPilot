@@ -7,6 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from contextpilot.analyzer import Intent
 from contextpilot.config import ContextPilotConfig
+from contextpilot.content import is_plain_string, message_has_cache_control
 from contextpilot.report import BlockDecision
 
 # Delimiters that RAG pipelines commonly use to separate retrieved chunks
@@ -36,6 +37,31 @@ def _split_chunks(text: str) -> list[str]:
     return [text]
 
 
+def _leading_query(text: str) -> str:
+    """The message's own question: text before the first chunk delimiter.
+
+    Using the message's own leading text as the relevance query makes pruning
+    a pure function of the message, so an already-pruned turn prunes to the
+    same bytes on every later request and the forwarded prefix stays stable.
+    """
+    m = _CHUNK_DELIMITERS.search(text)
+    if m and m.start() > 0:
+        return text[: m.start()].strip()
+    return ""
+
+
+def _score_and_filter(chunks: list[str], query: str, threshold: float) -> list[str]:
+    try:
+        corpus = chunks + [query]
+        vec = TfidfVectorizer(min_df=1, token_pattern=r"(?u)\b\w+\b")
+        tfidf = vec.fit_transform(corpus)
+        scores = cosine_similarity(tfidf[:-1], tfidf[-1].reshape(1, -1)).flatten()
+        kept = [c for c, s in zip(chunks, scores) if s >= threshold]
+    except Exception:
+        kept = chunks
+    return kept if kept else chunks  # never empty a message
+
+
 def prune_rag_chunks(
     messages: list[dict],
     query: str,
@@ -44,49 +70,54 @@ def prune_rag_chunks(
     block_ids: list[int] | None = None,
     decisions: list[BlockDecision] | None = None,
 ) -> list[dict]:
-    """FR-003c: RAG chunk pruning.
+    """FR-003c: RAG chunk pruning, cache-stable variant.
 
-    For each message that appears to contain multiple RAG chunks, scores each
-    chunk against the current query using TF-IDF cosine similarity and removes
-    chunks below the configured relevance threshold (default 0.15). Requires
-    no embedding model, uses scikit-learn TF-IDF (technical doc §3.3).
+    Scores chunks with TF-IDF cosine similarity (no embedding model,
+    technical doc §3.3) and drops those below the relevance threshold.
 
-    `intent` adjusts the effective threshold: raised for `refactor`/`explore`
-    (drop more aggressively for unrelated files / general browsing), lowered
-    for `debug` (keep more retrieved context while investigating an error).
+    Cache-stability contract:
+    - Historical messages are pruned against their own leading text (the
+      question that precedes the retrieved chunks), a pure per-message
+      function, so their pruned bytes never change across requests. Messages
+      without leading text are left untouched.
+    - Only the final message may additionally be pruned against the current
+      conversation query, and only there does `intent` adjust the threshold
+      (raised for `refactor`/`explore`, lowered for `debug`). The final
+      message is the one region of the payload the provider has not cached
+      yet, so query-aware pruning is free there and only there.
     """
     base = config.compression.rag_relevance_min
     if intent == Intent.REFACTOR:
-        threshold = max(base, 0.35)
+        final_threshold = max(base, 0.35)
     elif intent == Intent.EXPLORE:
-        threshold = max(base, 0.25)
+        final_threshold = max(base, 0.25)
     elif intent == Intent.DEBUG:
-        threshold = base * 0.5
+        final_threshold = base * 0.5
     else:
-        threshold = base
-    if not query:
-        return messages
+        final_threshold = base
 
     result: list[dict] = []
+    last = len(messages) - 1
     for i, msg in enumerate(messages):
+        if not is_plain_string(msg) or message_has_cache_control(msg):
+            result.append(msg)
+            continue
+
         content = msg.get("content") or ""
         chunks = _split_chunks(content)
-
         if len(chunks) <= 1:
             result.append(msg)
             continue
 
-        try:
-            corpus = chunks + [query]
-            vec = TfidfVectorizer(min_df=1, token_pattern=r"(?u)\b\w+\b")
-            tfidf = vec.fit_transform(corpus)
-            scores = cosine_similarity(tfidf[:-1], tfidf[-1].reshape(1, -1)).flatten()
-            kept = [c for c, s in zip(chunks, scores) if s >= threshold]
-        except Exception:
-            kept = chunks
+        is_final = i == last
+        own_query = _leading_query(content)
+        effective_query = own_query or (query if is_final else "")
+        if not effective_query:
+            result.append(msg)
+            continue
+        threshold = final_threshold if is_final else base
 
-        if not kept:
-            kept = chunks  # never empty a message
+        kept = _score_and_filter(chunks, effective_query, threshold)
 
         new_content = "\n\n".join(kept)
         if decisions is not None and len(kept) < len(chunks):
