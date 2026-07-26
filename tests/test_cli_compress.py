@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from json import JSONDecodeError
 
 from click.testing import CliRunner
 
@@ -55,3 +56,23 @@ def test_compress_help():
     result = runner.invoke(main, ["compress", "--help"])
     assert result.exit_code == 0
     assert "--report" in result.output
+
+
+def test_compress_command_invalid_json_from_stdin():
+    runner = CliRunner()
+    result = runner.invoke(main, ["compress"], input="{not json")
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, JSONDecodeError)
+    assert "Error: invalid JSON from stdin" in result.output
+
+
+def test_compress_command_invalid_json_from_input_file(tmp_path):
+    input_file = tmp_path / "payload.json"
+    input_file.write_text("{not json")
+    runner = CliRunner()
+    result = runner.invoke(main, ["compress", "--input", str(input_file)])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, JSONDecodeError)
+    assert f"Error: invalid JSON from {input_file}" in result.output

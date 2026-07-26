@@ -296,7 +296,12 @@ def compress_command(
     from contextpilot.report import render_report
 
     raw = open(input_path, encoding="utf-8").read() if input_path else sys.stdin.read()
-    data = json.loads(raw)
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        source = input_path or "stdin"
+        raise click.ClickException(f"invalid JSON from {source}: {exc.msg}") from exc
+
     cfg = ContextPilotConfig.load(config_path)
     result = compress_fn(
         data.get("messages", []), system=data.get("system"), config=cfg, report=show_report
