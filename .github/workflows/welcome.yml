@@ -16,9 +16,9 @@ jobs:
     steps:
       - uses: actions/first-interaction@v3
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
 
-          issue-message: |
+          issue_message: |
             Thanks for opening your first issue on ContextPilot!
 
             A maintainer will take a look shortly. A few things that help us triage faster:
@@ -28,7 +28,7 @@ jobs:
 
             We appreciate you taking the time to report this!
 
-          pr-message: |
+          pr_message: |
             Thanks for your first pull request on ContextPilot!
 
             Here is what happens next:
