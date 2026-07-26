@@ -6,6 +6,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [0.3.1] - 2026-07-26
+
+### Fixed
+- `contextpilot compress` raised a raw `json.JSONDecodeError` traceback on malformed input from stdin or `--input`. Now exits cleanly with a readable `invalid JSON from <source>: <reason>` message (#36, contributed by @AleksZyro).
+- `cli.py`'s `compress` command opened its input file without closing the handle; now uses a context manager.
+- Minor CodeQL cleanup: deduplicated a redundant `json` import in `tests/test_cli_compress.py`.
+
+---
+
 ## [0.3.0] - 2026-07-25
 
 ### Added
