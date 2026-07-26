@@ -6,6 +6,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [0.4.0] - 2026-07-26
+
+Cache-aware compression. Provider prompt caching bills repeated prefix bytes at ~0.1x and is a strict byte-prefix match, so a compressor that rewrites earlier conversation bytes must remove roughly 90% of tokens just to break even. Measured on a simulated prefix cache (`python benchmarks/cache_economics.py`), the 0.3.x pipeline achieved a 76.3% token reduction yet cost +87.5% more than forwarding payloads unchanged; the 0.4.0 pipeline is -8.7% cheaper. Token reduction is not the billable unit; cache-adjusted cost is.
+
+### Added
+- **Content-block support** (#22): messages whose content is a block list (tool calls, tool results, images, `cache_control` markers) are now analyzed via the new `content.py` instead of raising internally and being forwarded raw with a debug-only log. Block messages are deliberately forwarded byte-identical; payloads that carry client `cache_control` markers only have their final, not-yet-cached message compressed.
+- **Cost gate** (#39): the new `cost.py` prices original vs compressed payloads with real cache multipliers (0.1x read, 1.25x write, per-epoch rebuild amortization). Compression that would raise the cache-adjusted cost falls back to the original payload. Config: `compression.cache_aware` (default true). `CompressionReport` gains `fallback_reason` (`no_reduction` | `quality` | `cost`).
+- **Shadow A/B testing wired in** (FR-005, #21): the OpenAI and Anthropic wrapper adapters now sample per `shadow_testing.sample_rate`, send both payloads, and record response similarity on the telemetry event.
+- **Proxy cache_control injection**: large stable plain-string system prompts get a real cache breakpoint injected when the client set none of its own. Config: `compression.inject_cache_control` (default true).
+- New benchmark `benchmarks/cache_economics.py`: simulated provider prefix cache, prints token reduction and cache-adjusted cost side by side.
+
+### Changed
+- **History summarization is epoch-based** (#37): the boundary advances in `compression.history_epoch` steps (default 8) and the summary is a pure function of the messages before it, so the forwarded payload stays byte-identical between epochs and provider prefix caching keeps working. Conversations now need to outgrow `history_window + history_epoch` before the first fold; set `history_epoch: 1` to approximate the old per-turn behavior (not recommended with provider caching).
+- **Strategies are cache-stable**: RAG pruning scores historical messages against their own leading question only (the current query and intent thresholds apply solely to the final message); structural stripping decides diff protection from the message content instead of conversation intent. Intent no longer moves the history boundary; error-excerpt preservation is decided per message content.
+- Proxy compression failures now log at WARNING instead of DEBUG (#24).
+- Indicative pricing table refreshed to current model families.
+
+### Removed
+- **Aggressive dedup truncation** (#38): `level: aggressive` no longer replaces an unchanged system prompt with a `[SYSTEM CACHED ref:hash]` reference. Provider caches match on the exact bytes sent, so the model never saw its instructions; the truncation was a correctness bug. `SystemPromptDeduplicator` now tracks stability only, and the savings come from real provider caching via the injection above.
+
+---
+
 ## [0.3.1] - 2026-07-26
 
 ### Fixed
