@@ -26,7 +26,9 @@ If instructions conflict, prefer the **Word specs**, then this file, then ad‑h
 | **Phase 2 step 3** | Next: beta outreach (HN, early access list) |
 | **GitHub** | `msousa202/ContextPilot`, CI green, dependabot active |
 
-Known spec-vs-shipped gaps to keep in mind while working here: the quality gate default is `72` in shipped code, not the `85` some early planning material still cites (README and `contextpilot.yaml.example` are the source of truth); shadow testing (FR-005) is implemented but not yet called from `Pipeline.optimize()`, so enabling it in config currently has no effect. Both are tracked as GitHub issues rather than fixed silently. See `docs/limitations.md` for the full, current list.
+Known spec-vs-shipped gaps to keep in mind while working here: the quality gate default is `72` in shipped code, not the `85` some early planning material still cites (README and `contextpilot.yaml.example` are the source of truth). See `docs/limitations.md` for the full, current list.
+
+Core engineering invariant since the cache-aware rework (0.4.0): **compression must never raise the cache-adjusted request cost.** Provider prompt caching is a strict byte-prefix match billing reads at ~0.1x, so any transform of a message may depend only on that message's own content (plus the epoch-quantized history boundary), never on the current query, conversation length, or detected intent, except on the final not-yet-cached message. Payloads carrying client `cache_control` markers get only their final message touched. The cost gate (`cost.py`) enforces this economically; `benchmarks/cache_economics.py` measures it. Do not add a strategy that violates this without updating the cost model first.
 
 ---
 

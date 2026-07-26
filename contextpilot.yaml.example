@@ -2,9 +2,18 @@ compression:
   level: balanced          # conservative | balanced | aggressive
   quality_threshold: 72    # fallback to uncompressed if predicted score drops below this
   history_window: 6        # keep last N conversation turns verbatim
+  history_epoch: 8         # summarization boundary advances in steps of N turns
+                           # (keeps the forwarded prefix byte-stable so provider
+                           # prompt caching keeps working between epochs)
   rag_relevance_min: 0.15  # drop RAG chunks below this TF-IDF relevance score
   intent_override: null    # debug | build | explore | refactor | unknown | null (auto-detect)
   intent_detection_window: 4  # how many recent turns the intent heuristic examines
+  cache_aware: true        # refuse compression that would raise the cache-adjusted
+                           # request cost (cache reads bill ~0.1x; rewriting cached
+                           # prefix bytes re-bills them at full price)
+  inject_cache_control: true  # proxy only: add a cache_control breakpoint to large
+                              # stable plain-string system prompts when the client
+                              # set none of its own
 
 shadow_testing:
   enabled: false
