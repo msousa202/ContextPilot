@@ -3,12 +3,10 @@ from __future__ import annotations
 import re
 from collections import Counter
 
-from contextpilot.analyzer import DEBUG_SIGNAL_PATTERN, Intent, MessageBlock
+from contextpilot.analyzer import DEBUG_SIGNAL_PATTERN, MessageBlock
 from contextpilot.config import ContextPilotConfig
+from contextpilot.content import is_plain_string, message_has_cache_control
 from contextpilot.report import BlockDecision
-
-_DEBUG_WINDOW_BONUS = 4
-_EXPLORE_WINDOW_REDUCTION = 2
 
 # Common English words that carry no distinctive information
 _STOPWORDS = frozenset(
@@ -119,39 +117,65 @@ def _extract_keywords(text: str, top_k: int = 8) -> str:
     return " ".join(ranked[:top_k])
 
 
+def epoch_boundary(n_messages: int, window: int, epoch: int, mutable_prefix_len: int) -> int:
+    """Index k: messages[:k] are summarized, messages[k:] forwarded verbatim.
+
+    Cache-stability contract: k is quantized to multiples of `epoch`, so the
+    boundary (and therefore the summary bytes and everything after them) stays
+    identical across turns until the conversation has grown by a full epoch.
+    Provider prefix caches are invalidated once per epoch instead of on every
+    request. k never exceeds the leading run of rewritable messages.
+    """
+    if epoch < 1:
+        epoch = 1
+    k = ((n_messages - window) // epoch) * epoch
+    k = min(k, (mutable_prefix_len // epoch) * epoch)
+    return max(k, 0)
+
+
 def summarize_old_turns(
     messages: list[dict],
     blocks: list[MessageBlock],
     config: ContextPilotConfig,
-    intent: Intent = Intent.UNKNOWN,
     decisions: list[BlockDecision] | None = None,
 ) -> list[dict]:
-    """FR-003a: Conversation history summarization.
+    """FR-003a: Conversation history summarization, epoch-based.
 
-    Keeps the last `history_window` turns verbatim. All older turns are
-    collapsed into a compact keyword-based [CONTEXT] block, no LLM call,
-    under 10 ms (technical doc §3.1).
+    Collapses old turns into a compact keyword [CONTEXT] block, no LLM call,
+    under 10 ms (technical doc §3.1). Keyword extraction preserves TF-IDF
+    signal so the quality gate scores the summary highly despite the token
+    reduction.
 
-    Keyword extraction preserves TF-IDF signal so the quality gate scores
-    the summary highly despite the dramatic token reduction.
+    The summarization boundary advances in `history_epoch` steps and the
+    summary is a pure function of the messages before it, so the forwarded
+    payload is byte-identical between epochs and provider prefix caching
+    keeps working (see `cost.py` for why that dominates the economics).
 
-    `intent` adjusts the retained window: widened for `debug` (preserve more
-    recent turns verbatim), narrowed for `explore` (compress more history).
-    During `debug`, old turns containing error/traceback signals keep their
-    exact text (truncated) instead of being reduced to keywords only.
+    Old turns containing error/traceback signals keep an exact excerpt
+    instead of keywords only; the check is per-message content, deterministic
+    regardless of the current conversation intent.
+
+    Messages with non-string content or cache_control markers are never
+    folded into a summary.
     """
     n = len(messages)
     window = config.compression.history_window
-    if intent == Intent.DEBUG:
-        window += _DEBUG_WINDOW_BONUS
-    elif intent == Intent.EXPLORE:
-        window = max(1, window - _EXPLORE_WINDOW_REDUCTION)
     if n <= window:
         return messages
 
-    keep_from = n - window
-    old_messages = messages[:keep_from]
-    recent_messages = messages[keep_from:]
+    mutable_prefix_len = 0
+    for m in messages:
+        if is_plain_string(m) and not message_has_cache_control(m):
+            mutable_prefix_len += 1
+        else:
+            break
+
+    k = epoch_boundary(n, window, config.compression.history_epoch, mutable_prefix_len)
+    if k <= 0:
+        return messages
+
+    old_messages = messages[:k]
+    recent_messages = messages[k:]
 
     parts: list[str] = []
     for msg in old_messages:
@@ -160,7 +184,7 @@ def summarize_old_turns(
         if not content:
             continue
         token_est = len(content.split())
-        if intent == Intent.DEBUG and DEBUG_SIGNAL_PATTERN.search(content):
+        if DEBUG_SIGNAL_PATTERN.search(content):
             excerpt = content[:200]
             parts.append(f"[{role[0].upper()} ~{token_est}t: {excerpt}]")
         else:
@@ -177,7 +201,7 @@ def summarize_old_turns(
 
     if decisions is not None:
         summary_tokens = len(summary_block["content"].split())
-        old_blocks = blocks[:keep_from]
+        old_blocks = blocks[:k]
         total_old_tokens = sum(blk.token_count for blk in old_blocks) or 1
         for blk in old_blocks:
             share = round(summary_tokens * blk.token_count / total_old_tokens)
@@ -186,7 +210,11 @@ def summarize_old_turns(
                     block_id=blk.index,
                     strategy_applied="history",
                     action="summarized",
-                    reason=f"outside history_window ({window} turns), folded into keyword summary",
+                    reason=(
+                        f"behind epoch boundary {k} "
+                        f"(window {window}, epoch {config.compression.history_epoch}), "
+                        "folded into keyword summary"
+                    ),
                     tokens_saved=max(0, blk.token_count - share),
                 )
             )

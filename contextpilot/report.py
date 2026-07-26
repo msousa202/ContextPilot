@@ -29,6 +29,7 @@ class CompressionReport:
     blocks: list[BlockDecision] = field(default_factory=list)
     quality_score: float = 100.0
     fallback_used: bool = False
+    fallback_reason: str = ""  # "" | "no_reduction" | "quality" | "cost"
 
     def to_dict(self) -> dict:
         return {
@@ -37,6 +38,7 @@ class CompressionReport:
             "reduction_pct": self.reduction_pct,
             "quality_score": self.quality_score,
             "fallback_used": self.fallback_used,
+            "fallback_reason": self.fallback_reason,
             "blocks": [
                 {
                     "block_id": b.block_id,
@@ -62,9 +64,12 @@ def render_report(report: CompressionReport) -> str:
         "",
     ]
     if report.fallback_used:
-        lines.append(
-            "  Quality gate rejected compression: original payload used, no per-block changes."
-        )
+        detail = {
+            "quality": "quality gate rejected compression",
+            "cost": "cost gate rejected compression (cache-adjusted cost would rise)",
+            "no_reduction": "compression produced no token reduction",
+        }.get(report.fallback_reason, "compression rejected")
+        lines.append(f"  Fallback: {detail}, original payload used, no per-block changes.")
     elif not report.blocks:
         lines.append("  No blocks were modified.")
     else:
