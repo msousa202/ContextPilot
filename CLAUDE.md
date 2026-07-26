@@ -18,7 +18,7 @@ If instructions conflict, prefer the **Word specs**, then this file, then ad‑h
 
 | Item | Value |
 |------|-------|
-| **PyPI version** | `contextpilot-ai 0.4.0` |
+| **PyPI version** | `contextpilot-ai 0.4.1` |
 | **Phase** | Phase 2: Beta launch in progress |
 | **Phase 1** | Complete, all 4 surfaces shipped |
 | **Phase 2 step 1** | Done, contextpilot.org landing page live |

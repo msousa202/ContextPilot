@@ -6,6 +6,32 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [0.4.1] - 2026-07-26
+
+Launch-readiness audit of 0.4.0. Three defects, two of them user-visible regressions introduced by the cache-aware rework.
+
+### Fixed
+- **`compression.level` was a no-op.** The analyzer computes a `BlockClass` classification that no strategy reads, and removing the aggressive system-prompt truncation in 0.4.0 took away the setting's last real effect, while the README, site, and config example all still documented it as working. `level` is now a preset over `history_window` and `rag_relevance_min` (both cache-safe knobs): `conservative` 10/0.05, `balanced` 6/0.15, `aggressive` 3/0.30. Any field you set explicitly still wins over the preset, and an invalid level now raises instead of silently behaving as `balanced`.
+- **Setting `level` after construction did nothing.** `cfg.compression.level = "aggressive"` following `ContextPilotConfig.load()` skipped the preset entirely, because pydantic model validators do not run on assignment. `CompressionConfig` now uses `validate_assignment`, so post-load assignment applies the preset and rejects invalid values.
+- **The cost gate blocked one-shot compression.** It assumed a warm prefix cache unconditionally, so `contextpilot.compress()` on a 14-20 turn payload returned 0% reduction where 37-53% was available. That assumption is correct for the proxy and wrapper surfaces, which serve repeated conversations, and wrong for a single call with no prefix to preserve. New `compression.assume_cached` field: `true` for the pipeline surfaces, `false` for `contextpilot.compress()` (override with `assume_cached=True` if you call it repeatedly over a growing conversation).
+
+### Changed
+- Fallback reasons now render actionable guidance instead of one generic line. A `cost` fallback explains the cache arithmetic and points at `assume_cached`; a `quality` fallback points at `quality_threshold`.
+- README benchmark table replaced with currently measured values. The previous figures predated the cache-aware rework and overstated reduction by 7 to 19 points; two scenarios now fall back entirely, which is the gates working as intended. Headline corrected from 60-80% to 60-75% on default settings.
+- README headline now claims **token** reduction with a separate guarantee about cost, rather than presenting token reduction as cost reduction. Added a "Cost, honestly" section explaining when the two coincide and when they do not, plus the 0.3.x (+87.5%) versus 0.4.0 (-8.7%) comparison.
+- Removed the unsupported "cost at scale" table, which converted token counts straight to dollars with no cache modelling.
+
+### Added
+- `benchmarks/validate_cache_costs.py`: replays a real conversation twice against the Anthropic API, reads actual `usage` fields, and compares measured billed cost against the simulated model. Warns when the pipeline run loses cache reads.
+- `contextpilot.compress()` documented in the README. It was exported in `__all__` since 0.3.0 but never documented.
+- `history_epoch`, `cache_aware`, `assume_cached`, and `inject_cache_control` added to `docs/configuration.md` and the README config block, with the `level` preset table and the epoch-quantization tradeoff explained.
+
+### Notes
+- 257 tests passing, up from 240. New coverage for the level presets, the assume_cached contract, and fallback-reason rendering.
+- The cache cost model is still validated only against a simulated prefix cache. `docs/limitations.md` says so explicitly, and the new validation script exists to close that gap.
+
+---
+
 ## [0.4.0] - 2026-07-26
 
 Cache-aware compression. Provider prompt caching bills repeated prefix bytes at ~0.1x and is a strict byte-prefix match, so a compressor that rewrites earlier conversation bytes must remove roughly 90% of tokens just to break even. Measured on a simulated prefix cache (`python benchmarks/cache_economics.py`), the 0.3.x pipeline achieved a 76.3% token reduction yet cost +87.5% more than forwarding payloads unchanged; the 0.4.0 pipeline is -8.7% cheaper. Token reduction is not the billable unit; cache-adjusted cost is.
