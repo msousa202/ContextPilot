@@ -5,9 +5,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-**Cut your LLM API costs 60-80% with one line of code.**
+**Cut LLM context tokens 60-80%, and never pay more than you would have.**
 
-ContextPilot is a Python middleware library that compresses LLM context before each API call. It wraps OpenAI and Anthropic SDKs, runs a compression pipeline, and falls back to the original payload if quality drops. Works as a Python library, a local proxy, an MCP server, or a CLI migration tool.
+ContextPilot is a Python middleware library that compresses LLM context before each API call. It wraps OpenAI and Anthropic SDKs, runs a compression pipeline, and falls back to the original payload if quality drops or if compression would raise your actual bill. Works as a Python library, a local proxy, an MCP server, or a CLI migration tool.
+
+> **What token reduction means for your bill.** If your calls don't hit provider prompt caching (one-shot calls, non-repeating prefixes), token reduction translates roughly to cost reduction. If they do (most multi-turn and agent traffic), caching already bills your repeated prefix at ~0.1x, so the additional saving is much smaller, and a cache-naive compressor can make your bill *worse* by rewriting cached bytes. ContextPilot measures this and refuses compression that would cost you more. See [Cost, honestly](#cost-honestly).
 
 **Website:** [contextpilot.org](https://contextpilot.org) | **PyPI:** [contextpilot-ai](https://pypi.org/project/contextpilot-ai/)
 
@@ -36,8 +38,8 @@ Compression runs in your own process, in memory. Your prompts and responses go t
 
 Measured on realistic production conversation patterns. Each scenario uses actual repetition patterns developers encounter: accumulated context, repeated RAG chunks, repeated error traces, multi-agent handoffs.
 
-| Scenario | Tokens | Reduction | Quality | Latency |
-|----------|--------|-----------|---------|---------|
+| Scenario | Tokens | Token reduction | Quality | Latency |
+|----------|--------|-----------------|---------|---------|
 | AI coding assistant, 25 turns, growing project context | 5,810 → 1,118 | **80.8%** | 82.8/100 | 10ms |
 | RAG chatbot, 18 turns, 5 retrieved chunks per query | 4,980 → 1,034 | **79.2%** | 83.4/100 | 9ms |
 | Multi-agent code review, 4 agents x 6 rounds | 19,619 → 4,049 | **79.4%** | 83.9/100 | 22ms |
@@ -47,15 +49,32 @@ Measured on realistic production conversation patterns. Each scenario uses actua
 
 The quality gate skips compression whenever quality drops below threshold. In all 6 scenarios above, quality held at 82-84/100, well above the default 72.
 
-**Cost at scale** (most impactful scenario: multi-agent on Claude Opus):
-
-| Volume | Without ContextPilot | With ContextPilot | Monthly saving |
-|--------|---------------------|-------------------|----------------|
-| 100 calls/day | $29/day | $6/day | **$701/mo** |
-| 1,000 calls/day | $294/day | $61/day | **$7,006/mo** |
-| 10,000 calls/day | $2,943/day | $607/day | **$70,065/mo** |
-
 Run `python benchmarks/benchmark_readme.py` to reproduce locally. These benchmarks top out around 20K tokens per conversation; see [docs/limitations.md](docs/limitations.md) for where the performance budget is and isn't independently verified yet.
+
+---
+
+<a name="cost-honestly"></a>
+## Cost, honestly
+
+The table above measures **tokens**, which is not what you are billed for once provider prompt caching is involved.
+
+Prompt caching is a strict byte-prefix match: cached reads bill at roughly **0.1x** the base input price, cache writes at **1.25x**, and the first differing byte invalidates everything after it. Two consequences:
+
+1. **On workloads without caching** (one-shot calls, prefixes that never repeat), token reduction translates roughly to cost reduction. The numbers above are a reasonable guide.
+2. **On cache-warm workloads** (multi-turn chat, coding agents, anything resending a conversation), caching is already handling your repeated prefix at 0.1x. Compression can only save on top of that, so the additional saving is far smaller. Worse, a compressor that rewrites earlier conversation bytes invalidates the cache and **raises** your bill: it has to remove roughly 90% of tokens just to break even.
+
+We measured this against our own engine on a 40-turn synthetic agent transcript with a simulated prefix cache:
+
+| Engine | Token reduction | Cost vs. sending the payload unchanged |
+|--------|-----------------|----------------------------------------|
+| ContextPilot 0.3.x | 76.3% | **+87.5% (more expensive)** |
+| ContextPilot 0.4.0 | 63.8% | **-8.7% (cheaper)** |
+
+0.3.x compressed more tokens and cost more money. 0.4.0 keeps the forwarded payload byte-stable so caching keeps working, and adds a **cost gate** that prices the compressed payload against the original under the real cache multipliers and falls back when compression would be a net loss. That is why the headline claim is about tokens, with a guarantee about cost, rather than a single blended number.
+
+Reproduce with `python benchmarks/cache_economics.py`.
+
+**Caveat we're explicit about:** that benchmark uses a *simulated* prefix cache built from published pricing and documented cache behavior. It has not yet been validated against live API responses. Run `python benchmarks/validate_cache_costs.py` with your own key to check it against real `usage` fields on your traffic.
 
 ---
 
