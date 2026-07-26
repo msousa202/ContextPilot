@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-**Cut LLM context tokens 60-80%, and never pay more than you would have.**
+**Cut LLM context tokens 60-75%, and never pay more than you would have.**
 
 ContextPilot is a Python middleware library that compresses LLM context before each API call. It wraps OpenAI and Anthropic SDKs, runs a compression pipeline, and falls back to the original payload if quality drops or if compression would raise your actual bill. Works as a Python library, a local proxy, an MCP server, or a CLI migration tool.
 
@@ -38,16 +38,21 @@ Compression runs in your own process, in memory. Your prompts and responses go t
 
 Measured on realistic production conversation patterns. Each scenario uses actual repetition patterns developers encounter: accumulated context, repeated RAG chunks, repeated error traces, multi-agent handoffs.
 
+Measured on `balanced` (the default). Fallback rows are not failures: they are the gates declining to compress, which is the behavior you want.
+
 | Scenario | Tokens | Token reduction | Quality | Latency |
 |----------|--------|-----------------|---------|---------|
-| AI coding assistant, 25 turns, growing project context | 5,810 → 1,118 | **80.8%** | 82.8/100 | 10ms |
-| RAG chatbot, 18 turns, 5 retrieved chunks per query | 4,980 → 1,034 | **79.2%** | 83.4/100 | 9ms |
-| Multi-agent code review, 4 agents x 6 rounds | 19,619 → 4,049 | **79.4%** | 83.9/100 | 22ms |
-| Production debugging, 20 turns, repeated tracebacks | 3,814 → 928 | **75.7%** | 82.4/100 | 9ms |
-| LangChain tool agent, 15 turns, 3 tool outputs/turn | 5,368 → 1,278 | **76.2%** | 83.7/100 | 8ms |
-| Document Q&A, 16 turns, full spec prepended each query | 4,561 → 1,110 | **75.7%** | 83.9/100 | 8ms |
+| AI coding assistant, 25 turns, growing project context | 5,810 → 1,608 | **72.3%** | 84.7/100 | 29ms |
+| LangChain tool agent, 15 turns, 3 tool outputs/turn | 5,368 → 1,433 | **73.3%** | 84.2/100 | 21ms |
+| Multi-agent code review, 4 agents x 6 rounds | 19,619 → 6,580 | **66.5%** | 86.5/100 | 39ms |
+| Document Q&A, 16 turns, full spec prepended each query | 4,561 → 1,586 | **65.2%** | 86.2/100 | 17ms |
+| RAG chatbot, 18 turns, 5 retrieved chunks per query | 4,962 → 1,977 | **60.2%** | 87.6/100 | 18ms |
+| Production debugging, 20 turns, repeated tracebacks | 3,810 → 3,810 | *fallback, 0%* | 89.3/100 | 13ms |
+| Production support bot, 500-word system prompt | 501 → 501 | *fallback, 0%* | 94.4/100 | 6ms |
 
-The quality gate skips compression whenever quality drops below threshold. In all 6 scenarios above, quality held at 82-84/100, well above the default 72.
+Two scenarios fall back to the original payload: the support bot is simply too short to compress profitably, and the debugging session preserves error excerpts verbatim, so the summary isn't smaller than what it replaces. Both send the original payload untouched.
+
+On `aggressive`, the coding-assistant scenario reaches **86.8%** at quality 81.4. See [Configuration](#configuration) for the tradeoff.
 
 Run `python benchmarks/benchmark_readme.py` to reproduce locally. These benchmarks top out around 20K tokens per conversation; see [docs/limitations.md](docs/limitations.md) for where the performance budget is and isn't independently verified yet.
 
@@ -121,13 +126,31 @@ from anthropic import Anthropic
 client = contextpilot.wrap(Anthropic())
 
 response = client.messages.create(
-    model="claude-sonnet-4-20250514",
+    model="claude-opus-5",
     max_tokens=1024,
     messages=messages
 )
 ```
 
 That's the full integration. No other code changes required.
+
+**Compress a payload without wrapping a client:**
+```python
+import contextpilot
+
+result = contextpilot.compress(messages, report=True)
+result.payload["messages"]      # the compressed message list
+result.payload["system"]        # system prompt (unchanged, or None)
+result.report.reduction_pct     # e.g. 53.4
+result.report.fallback_used     # True if a gate declined to compress
+result.report.fallback_reason   # "" | "no_reduction" | "quality" | "cost"
+```
+
+`compress()` treats each call as a one-shot request with no prefix cache to
+preserve, so fewer tokens is simply cheaper. If you call it repeatedly over a
+growing conversation and send the result to a provider with prompt caching
+enabled, pass `assume_cached=True` so the cost gate protects that cache. The
+proxy and wrapper surfaces already assume caching by default.
 
 ---
 
@@ -257,8 +280,12 @@ Drop a `contextpilot.yaml` in your project root:
 compression:
   level: balanced          # conservative | balanced | aggressive
   quality_threshold: 72    # fallback to original if score drops below this
-  history_window: 6        # keep last N turns verbatim
-  rag_relevance_min: 0.15  # drop RAG chunks below this relevance score
+  history_window: 6        # keep last N turns verbatim (preset by level)
+  history_epoch: 8         # boundary moves in steps of N turns, keeps the
+                           # forwarded prefix cache-stable between steps
+  rag_relevance_min: 0.15  # drop RAG chunks below this relevance score (preset by level)
+  cache_aware: true        # refuse compression that raises cache-adjusted cost
+  inject_cache_control: true  # proxy: cache breakpoint on big stable system prompts
 
 shadow_testing:
   enabled: false

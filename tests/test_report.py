@@ -101,4 +101,25 @@ def test_render_report_fallback_message():
         original_tokens=10, compressed_tokens=10, reduction_pct=0.0, fallback_used=True
     )
     text = render_report(rpt)
-    assert "original payload used" in text
+    assert "Fallback" in text
+    assert "Original payload sent unchanged" in text
+
+
+def test_render_report_fallback_reasons_are_distinct_and_explained():
+    """Each fallback reason must tell the user something different and actionable."""
+    rendered = {
+        reason: render_report(
+            CompressionReport(
+                original_tokens=10,
+                compressed_tokens=10,
+                reduction_pct=0.0,
+                fallback_used=True,
+                fallback_reason=reason,
+            )
+        )
+        for reason in ("quality", "cost", "no_reduction")
+    }
+    assert "quality_threshold" in rendered["quality"]
+    assert "assume_cached" in rendered["cost"]
+    assert "too short" in rendered["no_reduction"]
+    assert len(set(rendered.values())) == 3  # no two reasons render identically

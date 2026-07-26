@@ -65,11 +65,23 @@ def render_report(report: CompressionReport) -> str:
     ]
     if report.fallback_used:
         detail = {
-            "quality": "quality gate rejected compression",
-            "cost": "cost gate rejected compression (cache-adjusted cost would rise)",
-            "no_reduction": "compression produced no token reduction",
+            "quality": (
+                "quality gate rejected compression (predicted score below threshold).\n"
+                "  Lower compression.quality_threshold to accept more aggressive compression."
+            ),
+            "cost": (
+                "cost gate rejected compression: it would raise the cache-adjusted cost.\n"
+                "  Provider prompt caching already bills the repeated prefix at ~0.1x, so\n"
+                "  rewriting it costs more than the tokens saved. If your workload has no\n"
+                "  prompt caching (one-shot calls, prefixes that never repeat), set\n"
+                "  compression.assume_cached: false to price it as a one-shot request."
+            ),
+            "no_reduction": (
+                "compression produced no token reduction (payload too short or already tight)."
+            ),
         }.get(report.fallback_reason, "compression rejected")
-        lines.append(f"  Fallback: {detail}, original payload used, no per-block changes.")
+        lines.append(f"  Fallback: {detail}")
+        lines.append("  Original payload sent unchanged, no per-block changes.")
     elif not report.blocks:
         lines.append("  No blocks were modified.")
     else:

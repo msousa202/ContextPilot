@@ -128,6 +128,7 @@ class Pipeline:
             system,
             compressed_sys,
             epoch=self.config.compression.history_epoch,
+            assume_cached=self.config.compression.assume_cached,
         )
         if self.config.compression.cache_aware and not estimate.compressed_is_cheaper:
             return self._fallback_result(

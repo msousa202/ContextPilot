@@ -104,6 +104,7 @@ def evaluate(
     system: str | None,
     compressed_system: str | None,
     epoch: int = 8,
+    assume_cached: bool = True,
 ) -> CostEstimate:
     """Compare payloads under the cache model.
 
@@ -119,7 +120,23 @@ def evaluate(
 
     Comparing steady-state alone would ignore that recurring rebuild and
     approve rewrites that lose money over the epoch.
+
+    `assume_cached=False` prices the payload as a one-shot request with no
+    prefix cache to preserve, which is the correct model for a single
+    `contextpilot.compress()` call or any workload whose prefixes never
+    repeat. There, every token bills at full price and fewer tokens is
+    simply cheaper.
     """
+    if not assume_cached:
+        orig_total = float(_total_tokens(original, system))
+        comp_total = float(_total_tokens(compressed, compressed_system))
+        return CostEstimate(
+            original_steady=round(orig_total, 2),
+            compressed_steady=round(comp_total, 2),
+            transition=round(comp_total, 2),
+            compressed_amortized=round(comp_total, 2),
+        )
+
     epoch = max(epoch, 1)
     orig_steady = steady_state_cost(original, system)
     comp_steady = steady_state_cost(compressed, compressed_system)

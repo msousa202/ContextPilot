@@ -27,19 +27,37 @@ compression:
   level: balanced
   quality_threshold: 72
   history_window: 6
+  history_epoch: 8
   rag_relevance_min: 0.15
   intent_override: null
   intent_detection_window: 4
+  cache_aware: true
+  assume_cached: true
+  inject_cache_control: true
 ```
 
 | Field | Default | What it does |
 |-------|---------|---------------|
-| `level` | `balanced` | `conservative`, `balanced`, or `aggressive`. Controls how hard each strategy compresses. |
+| `level` | `balanced` | `conservative`, `balanced`, or `aggressive`. A preset over `history_window` and `rag_relevance_min` (see below). Any field you set explicitly wins over the preset. |
 | `quality_threshold` | `72` | Predicted quality score (0-100) below which the original, uncompressed payload is sent instead. |
-| `history_window` | `6` | Number of most recent conversation turns kept verbatim; older turns are summarized. |
-| `rag_relevance_min` | `0.15` | TF-IDF relevance score below which a RAG chunk is dropped. |
+| `history_window` | `6` | Number of most recent conversation turns kept verbatim; older turns are summarized. Preset by `level`. |
+| `history_epoch` | `8` | The summarization boundary only advances in steps of this many turns, so the forwarded payload stays byte-identical between steps and provider prompt caching keeps working. Lower values compress sooner but invalidate the cache more often. |
+| `rag_relevance_min` | `0.15` | TF-IDF relevance score below which a RAG chunk is dropped. Preset by `level`. |
 | `intent_override` | `null` | Force `debug`, `build`, `explore`, `refactor`, or `unknown` instead of auto-detecting. Env override: `CONTEXTPILOT_INTENT`. |
 | `intent_detection_window` | `4` | How many recent turns the intent heuristic looks at when auto-detecting. |
+| `cache_aware` | `true` | Refuse compression that would raise the cache-adjusted cost of the request. Turning this off lets the pipeline optimize token count at the possible expense of your actual bill. |
+| `assume_cached` | `true` | Which cost model the gate uses. `true` prices the payload as a repeated conversation whose shared prefix is already served from the provider cache at ~0.1x, which is correct for the proxy and wrapper surfaces. `false` prices it as a one-shot request where every token bills at full price, which is correct when prefixes never repeat. `contextpilot.compress()` defaults to one-shot; pass `assume_cached=True` there if you call it repeatedly over a growing conversation. |
+| `inject_cache_control` | `true` | Proxy surface only. Adds a `cache_control` breakpoint to a large, stable, plain-string system prompt when the client set none of its own. Payloads that manage their own breakpoints are never touched. |
+
+### What `level` actually changes
+
+| `level` | `history_window` | `rag_relevance_min` |
+|---------|------------------|---------------------|
+| `conservative` | 10 | 0.05 |
+| `balanced` | 6 | 0.15 |
+| `aggressive` | 3 | 0.30 |
+
+Because the summarization boundary is quantized to `history_epoch`, a window difference smaller than the epoch may round to the same boundary and produce identical output. That is the deliberate cost of keeping the forwarded prefix cache-stable. Lower `history_epoch` if you want the window to bite sooner and accept more frequent cache invalidation.
 
 Env var overrides: `CONTEXTPILOT_QUALITY_THRESHOLD`, `CONTEXTPILOT_COMPRESSION_LEVEL`, `CONTEXTPILOT_HISTORY_WINDOW`, `CONTEXTPILOT_INTENT`.
 
