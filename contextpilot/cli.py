@@ -295,7 +295,11 @@ def compress_command(
     from contextpilot.config import ContextPilotConfig
     from contextpilot.report import render_report
 
-    raw = open(input_path, encoding="utf-8").read() if input_path else sys.stdin.read()
+    if input_path:
+        with open(input_path, encoding="utf-8") as f:
+            raw = f.read()
+    else:
+        raw = sys.stdin.read()
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as exc:
