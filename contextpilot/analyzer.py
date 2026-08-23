@@ -161,7 +161,7 @@ class Analyzer:
             content = texts[i]
             role = msg.get("role", "user")
             # Index 0 = oldest = most stale
-            staleness = 1.0 - (i / max(n - 1, 1))
+            staleness = 0.0 if n == 1 else 1.0 - (i / (n - 1))
             density = _density(content)
             redundancy = float(redundancies[i])
             relevance = float(relevances[i])

@@ -16,6 +16,7 @@ def test_single_message_is_essential():
     blocks = a.analyze([{"role": "user", "content": "Hello"}])
     assert len(blocks) == 1
     assert blocks[0].classification == BlockClass.ESSENTIAL
+    assert blocks[0].staleness == 0.0
 
 
 def test_system_message_always_essential():

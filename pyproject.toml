@@ -45,13 +45,13 @@ contextpilot = "contextpilot.cli:main"
 openai = ["openai>=1.0"]
 anthropic = ["anthropic>=0.20"]
 proxy = ["starlette>=0.27", "uvicorn[standard]>=0.23"]
-mcp = ["mcp>=1.0"]
+mcp = ["mcp>=1.0,<2"]
 all = [
     "openai>=1.0",
     "anthropic>=0.20",
     "starlette>=0.27",
     "uvicorn[standard]>=0.23",
-    "mcp>=1.0",
+    "mcp>=1.0,<2",
 ]
 dev = [
     "pytest>=7.0",
@@ -65,7 +65,7 @@ dev = [
     "starlette>=0.27",
     "uvicorn[standard]>=0.23",
     "httpx>=0.25",
-    "mcp>=1.0",
+    "mcp>=1.0,<2",
 ]
 
 [tool.hatch.build.targets.wheel]
