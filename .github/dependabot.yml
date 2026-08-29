@@ -14,6 +14,13 @@ updates:
       - dependencies
     reviewers:
       - msousa202
+    ignore:
+      # mcp 2.x is a breaking rewrite: it removes mcp.server.fastmcp and swaps
+      # httpx for httpx2. contextpilot/mcp_server.py targets the 1.x FastMCP
+      # API, so a major bump breaks Surface C. Revisit only alongside a
+      # deliberate port of the MCP server. See PR #48.
+      - dependency-name: "mcp"
+        update-types: ["version-update:semver-major"]
     groups:
       dev-tooling:
         patterns:
