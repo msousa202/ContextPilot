@@ -50,11 +50,12 @@ def _leading_query(text: str) -> str:
     return ""
 
 
-def _score_and_filter(chunks: list[str], query: str, threshold: float) -> list[str]:
+def _score_and_filter(
+    chunks: list[str], query: str, threshold: float, vectorizer: TfidfVectorizer
+) -> list[str]:
     try:
         corpus = chunks + [query]
-        vec = TfidfVectorizer(min_df=1, token_pattern=r"(?u)\b\w+\b")
-        tfidf = vec.fit_transform(corpus)
+        tfidf = vectorizer.fit_transform(corpus)
         scores = cosine_similarity(tfidf[:-1], tfidf[-1].reshape(1, -1)).flatten()
         kept = [c for c, s in zip(chunks, scores) if s >= threshold]
     except Exception:
@@ -98,6 +99,11 @@ def prune_rag_chunks(
 
     result: list[dict] = []
     last = len(messages) - 1
+    try:
+        vectorizer = TfidfVectorizer(min_df=1, token_pattern=r"(?u)\b\w+\b")
+    except Exception:
+        vectorizer = None
+
     for i, msg in enumerate(messages):
         if not is_plain_string(msg) or message_has_cache_control(msg):
             result.append(msg)
@@ -117,7 +123,11 @@ def prune_rag_chunks(
             continue
         threshold = final_threshold if is_final else base
 
-        kept = _score_and_filter(chunks, effective_query, threshold)
+        kept = (
+            chunks
+            if vectorizer is None
+            else _score_and_filter(chunks, effective_query, threshold, vectorizer)
+        )
 
         new_content = "\n\n".join(kept)
         if decisions is not None and len(kept) < len(chunks):

@@ -1,3 +1,6 @@
+from unittest.mock import patch
+
+import contextpilot.strategies.rag_pruner as rag_pruner
 from contextpilot.analyzer import Analyzer, Intent
 from contextpilot.config import ContextPilotConfig
 from contextpilot.report import BlockDecision
@@ -309,6 +312,34 @@ def test_rag_prune_skips_block_content():
     block_msg = {"role": "user", "content": [{"type": "text", "text": "a\n\nb\n\nc"}]}
     result = prune_rag_chunks([block_msg], "query", config)
     assert result[0] is block_msg
+
+
+def test_rag_prune_reuses_vectorizer_across_messages():
+    config = cfg(rag_relevance_min=0.01)
+    messages = [
+        {
+            "role": "user",
+            "content": (
+                "Python docs\n\n--- DOCUMENT 1 ---\nPython is a programming language.\n\n"
+                "--- DOCUMENT 2 ---\nAncient Rome had many roads."
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                "Python syntax\n\n--- DOCUMENT 1 ---\nPython supports list comprehensions.\n\n"
+                "--- DOCUMENT 2 ---\nGreek pottery used geometric patterns."
+            ),
+        },
+    ]
+
+    with patch.object(
+        rag_pruner, "TfidfVectorizer", wraps=rag_pruner.TfidfVectorizer
+    ) as vectorizer:
+        result = prune_rag_chunks(messages, "Python", config)
+
+    assert vectorizer.call_count == 1
+    assert all("Python" in message["content"] for message in result)
 
 
 # --- Agent memory ---
